@@ -95,7 +95,16 @@ C:\&gt;</xsl:text>
         <xsl:if test="$url != 'smb://'">
             <a href="./">
                 <xsl:call-template name="format-date">
-                    <xsl:with-param name="date" select="D:propstat/D:prop/D:creationdate"/>
+                    <xsl:with-param name="date">
+                        <xsl:choose>
+                            <xsl:when test="D:propstat/D:prop/D:creationdate">
+                                <xsl:value-of select="D:propstat/D:prop/D:creationdate"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:text>1970-01-01T00:00:00.000Z</xsl:text>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:with-param>
                 </xsl:call-template>
                 <xsl:text>      &lt;DIR&gt;          .</xsl:text>
             </a>
@@ -103,7 +112,16 @@ C:\&gt;</xsl:text>
 </xsl:text>
             <a href="../">
                 <xsl:call-template name="format-date">
-                    <xsl:with-param name="date" select="D:propstat/D:prop/D:creationdate"/>
+                    <xsl:with-param name="date">
+                        <xsl:choose>
+                            <xsl:when test="D:propstat/D:prop/D:creationdate">
+                                <xsl:value-of select="D:propstat/D:prop/D:creationdate"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:text>1970-01-01T00:00:00.000Z</xsl:text>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:with-param>
                 </xsl:call-template>
                 <xsl:text>      &lt;DIR&gt;          ..</xsl:text>
             </a>
@@ -114,7 +132,16 @@ C:\&gt;</xsl:text>
     <xsl:template match="D:response[D:propstat/D:prop/D:resourcetype/D:collection]" mode="entry">
         <a href="{D:href}">
             <xsl:call-template name="format-date">
-                <xsl:with-param name="date" select="D:propstat/D:prop/D:creationdate"/>
+                <xsl:with-param name="date">
+                    <xsl:choose>
+                        <xsl:when test="D:propstat/D:prop/D:creationdate">
+                            <xsl:value-of select="D:propstat/D:prop/D:creationdate"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:text>1970-01-01T00:00:00.000Z</xsl:text>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:with-param>
             </xsl:call-template>
             <xsl:text>      &lt;DIR&gt;          </xsl:text>
             <xsl:value-of select="substring(D:propstat/D:prop/D:displayname, 1, string-length(D:propstat/D:prop/D:displayname) - 1)"/>
@@ -125,7 +152,16 @@ C:\&gt;</xsl:text>
     <xsl:template match="D:response[not(D:propstat/D:prop/D:resourcetype/D:collection)]" mode="entry">
         <a href="{D:href}">
             <xsl:call-template name="format-date">
-                <xsl:with-param name="date" select="D:propstat/D:prop/D:creationdate"/>
+                <xsl:with-param name="date">
+                    <xsl:choose>
+                        <xsl:when test="D:propstat/D:prop/D:creationdate">
+                            <xsl:value-of select="D:propstat/D:prop/D:creationdate"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:text>1970-01-01T00:00:00.000Z</xsl:text>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:with-param>
             </xsl:call-template>
             <xsl:call-template name="pad-string">
                 <xsl:with-param name="string" select="format-number(number(D:propstat/D:prop/D:getcontentlength), '#,##0')"/>

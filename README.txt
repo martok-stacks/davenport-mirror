@@ -6,6 +6,31 @@ Davenport and its source code can be obtained freely from:
     http://davenport.sourceforge.net
 
 --------------------------------------------------------------------------------
+Version 0.9.9: June 28, 2004
+
+SUMMARY OF CHANGES:
+    Fixed session storage of non-serializable objects.
+    Applied finishing touches to 0.9.9b.
+
+
+CHANGE:
+    Fixed session storage of non-serializable objects.
+DETAILS:
+    0.9.9b stored non-serializable jcifs.UniAddress objects in the session.
+    This would cause exceptions upon serialization of the session.
+    Compiled stylesheet templates were stored in the session as well, and
+    are not serializable.
+RESOLUTION:
+    The address string is now stored rather than the UniAddress object itself.
+    Templates are now cached outside of the session.
+
+
+CHANGE:
+    Applied finishing touches to 0.9.9b.
+DETAILS:
+    Various minor fixes were applied to 0.9.9b as a result of testing.
+
+--------------------------------------------------------------------------------
 Version 0.9.9b: June 19, 2004
 
 SUMMARY OF CHANGES:

@@ -310,11 +310,7 @@ public abstract class Log {
                     DateFormat.SHORT);
             output.append(format.format(new Date())).append("]: ");
             output.append(message);
-            if (level > INFORMATION) {
-                System.err.println(output);
-            } else {
-                System.out.println(output);
-            }
+            System.out.println(output);
         }
 
     }

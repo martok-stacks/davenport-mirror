@@ -391,9 +391,11 @@ public class Davenport extends HttpServlet {
                     byte[] auth = Base64.decode(authorization.substring(5));
                     Hexdump.hexdump(new PrintStream(dump), auth, 0,
                             auth.length);
-                    Log.log(Log.DEBUG, "\n{0}", dump);
-                    Log.log(Log.DEBUG, "Challenge: " + Hexdump.toHexString(
-                            challenge, 0, challenge.length));
+                    Log.log(Log.DEBUG, "NTLM Message:\n{0}", dump);
+                    dump.reset();
+                    Hexdump.hexdump(new PrintStream(dump), challenge, 0,
+                            challenge.length);
+                    Log.log(Log.DEBUG, "Challenge:\n{0}", dump);
                 }
                 authentication = NtlmSsp.authenticate(request, response,
                         challenge);

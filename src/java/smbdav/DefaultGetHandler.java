@@ -29,6 +29,8 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -138,6 +140,10 @@ import org.w3c.dom.Document;
  */
 public class DefaultGetHandler extends AbstractHandler {
 
+    private static final Timer TIMER = new Timer(true);
+
+    private final Map templateMap = new HashMap();
+
     private final Map defaultTemplates = new HashMap();
 
     private final Map configurations = new HashMap();
@@ -201,20 +207,25 @@ public class DefaultGetHandler extends AbstractHandler {
             HttpServletResponse response, NtlmPasswordAuthentication auth)
                     throws ServletException, IOException {
         SmbFile file = getSmbFile(request, auth);
+        Log.log(Log.DEBUG, "GET Request for resource \"{0}\".", file);
         if (!file.exists()) {
+            Log.log(Log.DEBUG, "File does not exist.");
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
         String requestUrl = getRequestURL(request);
+        Log.log(Log.DEBUG, "Request URL: {0}", requestUrl);
         if (file.getName().endsWith("/") && !requestUrl.endsWith("/")) {
             StringBuffer redirect = new StringBuffer(requestUrl).append("/");
             String query = request.getQueryString();
             if (query != null) redirect.append("?").append(query);
+            Log.log(Log.DEBUG, "Redirecting to \"{0}\".", redirect);
             response.sendRedirect(redirect.toString());
             return;
         }
         if (!file.isFile()) {
             if ("configure".equals(request.getQueryString())) {
+                Log.log(Log.INFORMATION, "Configuration request received.");
                 showConfiguration(request, response);
                 return;
             }
@@ -232,12 +243,11 @@ public class DefaultGetHandler extends AbstractHandler {
             } else {
                 view = view.trim();
                 Cookie cookie = new Cookie("view", view);
+                cookie.setPath("/");
                 if (view.equals("")) {
                     view = null;
                     HttpSession session = request.getSession(false);
-                    if (session != null) {
-                        session.removeAttribute("davenport.templates");
-                    }
+                    if (session != null) clearTemplates(session);
                     cookie.setMaxAge(0);
                 } else {
                     cookie.setMaxAge(Integer.MAX_VALUE);
@@ -247,27 +257,25 @@ public class DefaultGetHandler extends AbstractHandler {
             Locale locale = request.getLocale();
             Templates templates = getDefaultTemplates(locale);
             if (view != null) {
+                Log.log(Log.DEBUG, "Custom view installed: {0}", view);
                 templates = null;
                 try {
                     HttpSession session = request.getSession(false);
                     if (session != null) {
-                        templates = (Templates)
-                                session.getAttribute("davenport.templates");
+                        templates = getTemplates(session);
                     }
                     if (templates == null) {
                         Source source = getStylesheet(view, false, locale);
                         templates = TransformerFactory.newInstance(
                                 ).newTemplates(source);
-                        if (session != null) {
-                            session.setAttribute("davenport.templates",
-                                    templates);
-                        }
+                        if (session == null) session = request.getSession(true);
+                        setTemplates(session, templates);
                     }
                 } catch (Exception ex) {
+                    Log.log(Log.WARNING, "Unable to install stylesheet: {0}",
+                            ex);
                     HttpSession session = request.getSession(false);
-                    if (session != null) {
-                        session.removeAttribute("davenport.templates");
-                    }
+                    if (session != null) clearTemplates(session);
                     showConfiguration(request, response);
                     return;
                 }
@@ -393,6 +401,41 @@ public class DefaultGetHandler extends AbstractHandler {
         }
     }
 
+    private Templates getTemplates(HttpSession session) throws ServletException,
+            IOException {
+        String id = session.getId();
+        TemplateTracker tracker;
+        synchronized (templateMap) {
+            tracker = (TemplateTracker) templateMap.get(id);
+        }
+        if (tracker == null) return null;
+        Log.log(Log.DEBUG, "Retrieved precompiled stylesheet.");
+        return tracker.getTemplates();
+    }
+
+    private void clearTemplates(HttpSession session)
+            throws ServletException, IOException {
+        String id = session.getId();
+        TemplateTracker tracker;
+        synchronized (templateMap) {
+            tracker = (TemplateTracker) templateMap.remove(id);
+        }
+        if (tracker != null) {
+            Log.log(Log.DEBUG, "Removing precompiled stylesheet.");
+            tracker.cancel();
+        }
+    }
+
+    private void setTemplates(HttpSession session, Templates templates)
+            throws ServletException, IOException {
+        String id = session.getId();
+        long cacheTime = (long) session.getMaxInactiveInterval() * 1000;
+        Log.log(Log.DEBUG, "Storing precompiled stylesheet.");
+        synchronized (templateMap) {
+            templateMap.put(id, new TemplateTracker(id, templates, cacheTime));
+        }
+    }
+
     private Templates getDefaultTemplates(Locale locale)
             throws ServletException, IOException {
         synchronized (defaultTemplates) {
@@ -482,13 +525,43 @@ public class DefaultGetHandler extends AbstractHandler {
     private Source getStylesheet(String location, boolean allowExternal,
             Locale locale) throws Exception {
         InputStream stream = getResourceAsStream(location, locale);
-        if (stream != null) return new StreamSource(stream);
+        if (stream != null) {
+            Log.log(Log.DEBUG, "Obtained stylesheet for \"{0}\".", location);
+            return new StreamSource(stream);
+        }
         if (!allowExternal) {
             throw new IllegalArgumentException(SmbDAVUtilities.getResource(
                     DefaultGetHandler.class, "stylesheetNotFound",
                             new Object[] { location }, null));
         }
+        Log.log(Log.DEBUG, "Using external stylesheet at \"{0}\".", location);
         return new StreamSource(location);
+    }
+
+    private class TemplateTracker extends TimerTask {
+
+        private final Templates templates;
+
+        private final String id;
+
+        public TemplateTracker(String id, Templates templates, long cacheTime) {
+            this.templates = templates;
+            this.id = id;
+            TIMER.schedule(this, cacheTime);
+        }
+
+        public void run() {
+            Log.log(Log.DEBUG, "Removing cached stylesheet for session {0}",
+                    id);
+            synchronized (templateMap) {
+                templateMap.remove(id);
+            }
+        }
+
+        public Templates getTemplates() {
+            return templates;
+        }
+
     }
 
 }

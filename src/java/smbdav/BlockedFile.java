@@ -40,4 +40,24 @@ public class BlockedFile extends SmbFile {
                 "accessBlocked", new Object[] { getCanonicalPath() }, null));
     }
 
+    public boolean exists() {
+        return false;
+    }
+
+    public boolean canRead() {
+        return false;
+    }
+
+    public boolean canWrite() {
+        return false;
+    }
+
+    public boolean isDirectory() {
+        return false;
+    }
+
+    public boolean isFile() {
+        return false;
+    }
+
 }
