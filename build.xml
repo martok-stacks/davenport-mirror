@@ -2,39 +2,46 @@
 
     <property name="build" value="build"/>
 
-    <property name="version" value="0.9.9"/>
+    <property name="version" value="0.9.10"/>
+    <property name="release" value="1"/>
+
+    <property name="container-version" value="4.2.21"/>
 
     <property name="distribution" value="davenport-${version}"/>
+    <property name="container-distribution" value="jetty-${container-version}"/>
 
     <target name="usage">
         <echo>
 Available Build Targets:
 
-dependencies: Checks that all class dependencies are met.
-     compile: Builds the Davenport classes.
-         jar: Packages the Davenport classes into a .jar file.
-         war: Packages the Davenport application into a .war file
-              for deployment.
-     javadoc: Creates the Javadoc API documentation.
-         all: Performs all of the above.
+ dependencies: Checks that all class dependencies are met.
+      compile: Builds the Davenport classes.
+          jar: Packages the Davenport classes into a .jar file.
+          war: Packages the Davenport application into a .war file
+               for deployment.
+          doc: Builds the Davenport application documentation.
+      javadoc: Creates the Javadoc API documentation.
+          all: Performs all of the above.
 
-       clean: Removes build artifacts.
-    allclean: Removes distribution and build artifacts.  This
-              includes the .jar and .war files, .class files, and
-              the Javadoc API documentation.
+        clean: Removes build artifacts.
+     allclean: Removes distribution and build artifacts.  This
+               includes the .jar and .war files, .class files, and
+               the Javadoc API documentation.
 
-   davenport: Builds the "all" target, followed by "clean".  This
-              reproduces the distribution package contents.
-     distrib: Builds the "davenport" target, and additionally
-              recreates the .zip and .tgz downloadable
-              distributions.
-    reconfig: Refreshes the Davenport .war file with the current
-              version of the deployment descriptor ("web.xml")
-              from the source tree.
-    checksum: Creates MD5 checksums of the .zip and .tgz
-              distributions.
+    davenport: Builds the "all" target, followed by "clean".
+  src-distrib: Recreates the source distribution .tgz (containing
+               the Davenport sources, plus the jCIFS and Jetty
+               distributions used to build the full binary
+               Davenport distribution.
+  bin-distrib: Builds the binary Davenport distribution and
+               packages it into .zip and .tgz archives.
+     rpm-spec: Generates an RPM specification for building the
+               Davenport RPM.
+      release: Performs the "distrib" targets and generates the
+               Davenport RPM specification.
+     checksum: Creates MD5 checksums of the distribution artifacts.
 
-       usage: Displays this message.</echo>
+        usage: Displays this message.</echo>
     </target>
 
     <target name="hasServlet" unless="hasServlet">
@@ -77,10 +84,28 @@ dependencies: Checks that all class dependencies are met.
     </target>
 
     <target name="dependencies">
-        <mkdir dir="lib"/>
+        <mkdir dir="dep"/>
+        <mkdir dir="${build}/lib"/>
+        <untar compression="gzip" dest="${build}/lib">
+            <patternset>
+                <include name="**/*.jar"/>
+            </patternset>
+            <fileset dir="dep">
+                <include name="**/*.tar.gz"/>
+                <include name="**/*.tgz"/>
+            </fileset>
+        </untar>
+        <unzip dest="${build}/lib">
+            <patternset>
+                <include name="**/*.jar"/>
+            </patternset>
+            <fileset dir="dep">
+                <include name="**/*.zip"/>
+            </fileset>
+        </unzip>
         <available classname="javax.servlet.Servlet" property="hasServlet">
             <classpath>
-                <fileset dir="lib">
+                <fileset dir="${build}/lib">
                     <include name="**/*.jar"/>
                 </fileset>
             </classpath>
@@ -88,7 +113,7 @@ dependencies: Checks that all class dependencies are met.
         <antcall target="hasServlet"/>
         <available classname="javax.xml.parsers.DocumentBuilder" property="hasJAXP">
             <classpath>
-                <fileset dir="lib">
+                <fileset dir="${build}/lib">
                     <include name="**/*.jar"/>
                 </fileset>
             </classpath>
@@ -96,7 +121,7 @@ dependencies: Checks that all class dependencies are met.
         <antcall target="hasJAXP"/>
         <available classname="javax.xml.transform.Transformer" property="hasXSLT">
             <classpath>
-                <fileset dir="lib">
+                <fileset dir="${build}/lib">
                     <include name="**/*.jar"/>
                 </fileset>
             </classpath>
@@ -104,7 +129,7 @@ dependencies: Checks that all class dependencies are met.
         <antcall target="hasXSLT"/>
         <available classname="jcifs.http.NtlmSsp" property="hasjCIFS">
             <classpath>
-                <fileset dir="lib">
+                <fileset dir="${build}/lib">
                     <include name="**/*.jar"/>
                 </fileset>
             </classpath>
@@ -116,7 +141,7 @@ dependencies: Checks that all class dependencies are met.
         <mkdir dir="${build}/classes"/>
         <javac srcdir="src/java" destdir="${build}/classes">
             <classpath>
-                <fileset dir="lib">
+                <fileset dir="${build}/lib">
                     <include name="**/*.jar"/>
                 </fileset>
             </classpath>
@@ -136,22 +161,64 @@ dependencies: Checks that all class dependencies are met.
         </jar>
     </target>
 
-    <target name="war" depends="jar">
-        <war warfile="davenport.war" webxml="src/misc/web.xml">
-            <lib dir="lib">
-                <include name="**/*.jar"/>
+    <target name="web-xml">
+        <mkdir dir="${build}"/>
+        <xslt in="src/doc/configuration.xml" out="${build}/web.xml" style="src/doc/configuration-xml.xsl">
+            <param name="version" expression="${version}"/>
+        </xslt>
+    </target>
+
+    <target name="war" depends="jar,web-xml">
+        <delete quiet="true" includeEmptyDirs="true" dir="${build}/warlib"/>
+        <mkdir dir="${build}/warlib"/>
+        <copy todir="${build}/warlib" flatten="true">
+            <fileset dir="${build}/lib">
+                <include name="**/jcifs-*.jar"/>
+            </fileset>
+        </copy>
+        <war warfile="davenport.war" webxml="${build}/web.xml">
+            <lib dir="${build}/warlib">
+                <include name="*.jar"/>
             </lib>
             <lib dir=".">
                 <include name="davenport.jar"/>
             </lib>
         </war>
+        <delete quiet="true" includeEmptyDirs="true" dir="${build}/warlib"/>
     </target>
 
-    <target name="reconfig">
-        <war update="true" warfile="davenport.war" webxml="src/misc/web.xml"/>
+    <target name="doc">
+        <mkdir dir="doc"/>
+        <copy todir="doc">
+            <fileset dir="src/doc">
+                <include name="**"/>
+                <exclude name="excludes.txt"/>
+                <excludesfile name="src/doc/excludes.txt"/>
+            </fileset>
+        </copy>
+        <xslt in="src/doc/changelog.xml" out="CHANGES.txt" style="src/doc/changelog-text.xsl">
+            <param name="version" expression="${version}"/>
+        </xslt>
+        <xslt in="src/doc/changelog.xml" out="doc/changelog.html" style="src/doc/changelog-html.xsl">
+            <param name="version" expression="${version}"/>
+        </xslt>
+        <xslt in="src/doc/configuration.xml" out="doc/configuration.html" style="src/doc/configuration-html.xsl">
+            <param name="version" expression="${version}"/>
+        </xslt>
+        <xslt in="src/doc/index.xml" out="doc/index.html" style="src/doc/identity-html.xsl"/>
+        <xslt in="src/doc/troubleshooting.xml" out="doc/troubleshooting.html" style="src/doc/identity-html.xsl"/>
     </target>
 
-    <target name="javadoc">
+    <target name="javadoc" depends="dependencies">
+        <mkdir dir="doc/api"/>
+        <copy todir="doc/api">
+            <fileset dir="src/doc/api">
+                <include name="**"/>
+            </fileset>
+            <filterset>
+                <filter token="VERSION" value="${version}"/>
+            </filterset>
+        </copy>
         <javadoc destdir="doc/api"
             packagenames="smbdav.*"
             overview="doc/api/overview.html"
@@ -159,12 +226,12 @@ dependencies: Checks that all class dependencies are met.
             version="true"
             use="true"
             windowtitle="Davenport"
-            doctitle="&lt;img src='../davenport.gif'&gt;"
+            doctitle="Davenport - Version ${version}"
             stylesheetfile="doc/api/stylesheet.css"
-            bottom="&lt;i&gt;Copyright &#169; 2003 Eric Glass&lt;/i&gt;">
+            bottom="&lt;i&gt;Copyright &#169; 2004 Eric Glass&lt;/i&gt;">
             <classpath>
                 <pathelement path="${java.class.path}"/>
-                <fileset dir="lib">
+                <fileset dir="${build}/lib">
                     <include name="**/*.jar"/>
                 </fileset>
             </classpath>
@@ -172,7 +239,7 @@ dependencies: Checks that all class dependencies are met.
         </javadoc>
     </target>
 
-    <target name="all" depends="war,javadoc"/>
+    <target name="all" depends="war,doc,javadoc"/>
 
     <target name="clean">
         <delete quiet="true" includeEmptyDirs="true" dir="${build}"/>
@@ -181,50 +248,173 @@ dependencies: Checks that all class dependencies are met.
     <target name="allclean" depends="clean">
         <delete quiet="true">
             <fileset dir=".">
-                <include name="${distribution}.zip"/>
-                <include name="${distribution}.zip.MD5"/>
+                <include name="${distribution}-src.tgz"/>
                 <include name="${distribution}.tgz"/>
-                <include name="${distribution}.tgz.MD5"/>
+                <include name="${distribution}.zip"/>
+                <include name="${distribution}-${release}.rpm"/>
+                <include name="${distribution}-${release}.spec"/>
+                <include name="${distribution}.MD5"/>
                 <include name="davenport.jar"/>
                 <include name="davenport.war"/>
+                <include name="CHANGES.txt"/>
             </fileset>
         </delete>
-        <delete quiet="true" includeEmptyDirs="true">
-            <fileset dir="doc/api">
-                <exclude name="overview.html"/>
-                <exclude name="stylesheet.css"/>
-            </fileset>
-        </delete>
+        <delete quiet="true" includeEmptyDirs="true" dir="doc"/>
     </target>
 
     <target name="davenport" depends="all,clean"/>
 
-    <target name="distrib" depends="davenport">
-        <zip zipfile="${distribution}.zip">
-            <zipfileset prefix="${distribution}" dir=".">
-                <include name="**"/>
-                <exclude name="${distribution}.zip"/>
-                <exclude name="${distribution}.zip.MD5"/>
-                <exclude name="${distribution}.tgz"/>
-                <exclude name="${distribution}.tgz.MD5"/>
-            </zipfileset>
-        </zip>
-        <delete quiet="true" includeEmptyDirs="true" dir="distrib-tmp"/>
-        <mkdir dir="distrib-tmp"/>
-        <unzip src="${distribution}.zip" dest="distrib-tmp"/>
-        <tar tarfile="${distribution}.tar" basedir="distrib-tmp"/>
-        <delete quiet="true" includeEmptyDirs="true" dir="distrib-tmp"/>
-        <gzip src="${distribution}.tar" zipfile="${distribution}.tgz"/>
-        <delete quiet="true" includeEmptyDirs="true">
-            <fileset dir=".">
-                <include name="${distribution}.tar"/>
-            </fileset>
-        </delete>
+    <target name="src-distrib" depends="javadoc">
+        <tar tarfile="${distribution}-src.tgz" compression="gzip">
+            <tarfileset prefix="${distribution}" dir=".">
+                <include name="build.xml"/>
+                <include name="license.txt"/>
+                <include name="src/**"/>
+                <include name="dep/**"/>
+                <include name="doc/api/**"/>
+            </tarfileset>
+        </tar>
     </target>
 
+    <target name="bin-distrib" depends="war,doc,clean">
+        <delete quiet="true" includeEmptyDirs="true" dir="bin-distrib-tmp"/>
+        <mkdir dir="bin-distrib-tmp"/>
+        <untar compression="gzip" dest="bin-distrib-tmp">
+            <fileset dir="dep">
+                <include name="${container-distribution}*.tar.gz"/>
+                <include name="${container-distribution}*.tgz"/>
+            </fileset>
+        </untar>
+        <unzip dest="bin-distrib-tmp">
+            <fileset dir="dep">
+                <include name="${container-distribution}*.zip"/>
+            </fileset>
+        </unzip>
+        <move todir="bin-distrib-tmp/${distribution}">
+            <fileset dir="bin-distrib-tmp/${container-distribution}"/>
+        </move>
+        <delete quiet="true" includeEmptyDirs="true" dir="bin-distrib-tmp/${distribution}/webapps"/>
+        <copy todir="bin-distrib-tmp/${distribution}/doc">
+            <fileset dir="doc"/>
+        </copy>
+        <mkdir dir="bin-distrib-tmp/${distribution}/doc/jetty"/>
+        <move todir="bin-distrib-tmp/${distribution}/doc/jetty">
+            <fileset dir="bin-distrib-tmp/${distribution}">
+                <include name="*.*"/>
+                <exclude name="start.jar"/>
+                <exclude name="stop.jar"/>
+            </fileset>
+        </move>
+        <copy file="CHANGES.txt" tofile="bin-distrib-tmp/${distribution}/CHANGES.txt"/>
+        <copy file="license.txt" tofile="bin-distrib-tmp/${distribution}/davenport-license.txt"/>
+        <mkdir dir="bin-distrib-tmp/${distribution}/logs"/>
+        <echo message="This directory must exist in order for the container to start properly." file="bin-distrib-tmp/${distribution}/logs/logs.txt"/>
+        <unwar src="davenport.war" dest="bin-distrib-tmp/${distribution}/webapps/root"/>
+        <delete quiet="true" includeEmptyDirs="true" dir="bin-distrib-tmp/${distribution}/webapps/root/META-INF"/>
+        <zip zipfile="${distribution}.zip">
+            <fileset dir="bin-distrib-tmp">
+                <include name="${distribution}/**"/>
+            </fileset>
+        </zip>
+        <tar tarfile="${distribution}.tgz" compression="gzip">
+            <tarfileset dir="bin-distrib-tmp">
+                <include name="${distribution}/**"/>
+            </tarfileset>
+        </tar>
+        <delete quiet="true" includeEmptyDirs="true" dir="bin-distrib-tmp"/>
+    </target>
+
+    <target name="hasRpmBuildRoot" unless="RPM_BUILD_ROOT">
+        <fail>
+
+    The RPM_BUILD_ROOT variable was not provided.
+        </fail>
+    </target>
+
+    <target name="isSafeRpmBuildRoot" unless="isSafeRpmBuildRoot">
+        <fail>
+
+    The RPM_BUILD_ROOT variable is set to "/".  This is dangerous.
+        </fail>
+    </target>
+
+    <target name="hasSafeRpmBuildRoot" depends="hasRpmBuildRoot">
+        <condition property="isSafeRpmBuildRoot">
+            <not>
+                <equals trim="true" arg1="${RPM_BUILD_ROOT}" arg2="/"/>
+            </not>
+        </condition>
+        <antcall target="isSafeRpmBuildRoot"/>
+    </target>
+
+    <target name="rpm-clean" depends="hasSafeRpmBuildRoot">
+        <delete quiet="true" includeEmptyDirs="true" dir="${RPM_BUILD_ROOT}"/>
+    </target>
+
+    <target name="rpm-install" depends="rpm-clean">
+        <mkdir dir="${RPM_BUILD_ROOT}/opt"/>
+        <untar dest="${RPM_BUILD_ROOT}/opt" src="${distribution}.tgz" compression="gzip"/>
+        <move todir="${RPM_BUILD_ROOT}/opt/davenport">
+            <fileset dir="${RPM_BUILD_ROOT}/opt/${distribution}"/>
+        </move>
+        <pathconvert dirsep="/" pathsep="&#10;" property="rpm-files">
+            <path>
+                <fileset dir="${RPM_BUILD_ROOT}">
+                    <exclude name="opt/davenport/webapps/root/WEB-INF/web.xml"/>
+                    <exclude name="opt/davenport/etc/admin.xml"/>
+                    <exclude name="opt/davenport/etc/jetty.xml"/>
+                    <exclude name="opt/davenport/doc/**"/>
+                </fileset>
+            </path>
+            <map from="${RPM_BUILD_ROOT}" to=""/>
+        </pathconvert>
+        <echo message="${rpm-files}" file="rpm-files.txt"/>
+    </target>
+
+    <target name="rpm-spec">
+        <copy file="src/misc/davenport.spec" tofile="${distribution}-${release}.spec">
+            <filterset>
+                <filter token="VERSION" value="${version}"/>
+                <filter token="RELEASE" value="${release}"/>
+            </filterset>
+        </copy>
+    </target>
+
+    <target name="release" depends="src-distrib,bin-distrib,rpm-spec"/>
+
     <target name="checksum">
-        <checksum file="${distribution}.zip"/>
-        <checksum file="${distribution}.tgz"/>
+        <delete quiet="true" file="${distribution}.MD5"/>
+        <antcall target="appendChecksum">
+            <param name="file" value="${distribution}-src.tgz"/>
+        </antcall>
+        <antcall target="appendChecksum">
+            <param name="file" value="${distribution}.tgz"/>
+        </antcall>
+        <antcall target="appendChecksum">
+            <param name="file" value="${distribution}.zip"/>
+        </antcall>
+        <antcall target="appendChecksum">
+            <param name="file" value="${distribution}-${release}.rpm"/>
+        </antcall>
+    </target>
+
+    <target name="appendChecksum">
+        <delete quiet="true" file="${file}.MD5"/>
+        <checksum>
+            <fileset dir=".">
+                <include name="${file}"/>
+            </fileset>
+        </checksum>
+        <available file="${file}.MD5" property="hasChecksumFile"/>
+        <antcall target="doChecksum"/>
+    </target>
+
+    <target name="doChecksum" if="hasChecksumFile">
+        <loadfile srcfile="${file}.MD5" property="checksum"/>
+        <delete quiet="true" file="${file}.MD5"/>
+        <echo message="${file}: ${checksum}" file="${distribution}.MD5" append="true"/>
+	<echo file="${distribution}.MD5" append="true">
+</echo>
     </target>
 
 </project>
