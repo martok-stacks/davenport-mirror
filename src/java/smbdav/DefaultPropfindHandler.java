@@ -112,14 +112,6 @@ public class DefaultPropfindHandler extends AbstractHandler {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-        if (file.getName().endsWith("/") &&
-                !request.getRequestURL().toString().endsWith("/")) {
-            StringBuffer redirect = request.getRequestURL().append("/");
-            String query = request.getQueryString();
-            if (query != null) redirect.append("?").append(query);
-            response.sendRedirect(redirect.toString());
-            return;
-        }
         PropertiesDirector director = new PropertiesDirector(
                 getPropertiesBuilder());
         Document properties = null;

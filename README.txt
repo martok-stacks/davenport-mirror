@@ -6,6 +6,22 @@ Davenport and its source code can be obtained freely from:
     http://davenport.sourceforge.net
 
 --------------------------------------------------------------------------------
+Version 0.9.8: February 12, 2004
+
+SUMMARY OF CHANGES:
+    Un-Fixed the non-bug involving redirects for directories not ending in "/".
+
+
+CHANGE:
+    Un-Fixed the non-bug involving redirects for directories not ending in "/".
+DETAILS:
+    Version 0.9.7 redirected requests for directories not ending in "/" to the
+    "/"-terminated equivalent for GET, HEAD, OPTIONS, and PROPFIND requests.
+    This is not legal for OPTIONS and PROPFIND.
+RESOLUTION:
+    Davenport now redirects requests only via GET and HEAD.
+
+--------------------------------------------------------------------------------
 Version 0.9.7: February 10, 2004
 
 SUMMARY OF CHANGES:

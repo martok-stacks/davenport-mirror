@@ -2,7 +2,7 @@
 
     <property name="build" value="build"/>
 
-    <property name="version" value="0.9.7"/>
+    <property name="version" value="0.9.8"/>
 
     <property name="distribution" value="davenport-${version}"/>
 

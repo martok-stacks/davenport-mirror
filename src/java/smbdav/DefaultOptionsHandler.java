@@ -57,14 +57,6 @@ public class DefaultOptionsHandler extends AbstractHandler {
         response.setHeader("MS-Author-Via", "DAV");
         SmbFile file = getSmbFile(request, auth);
         if (file.exists()) {
-            if (file.getName().endsWith("/") &&
-                    !request.getRequestURL().toString().endsWith("/")) {
-                StringBuffer redirect = request.getRequestURL().append("/");
-                String query = request.getQueryString();
-                if (query != null) redirect.append("?").append(query);
-                response.sendRedirect(redirect.toString());
-                return;
-            }
             if (file.isFile()) {
                 response.setHeader("Allow", "OPTIONS, HEAD, GET, DELETE, " +
                         "PROPFIND, PROPPATCH, COPY, MOVE, PUT");
