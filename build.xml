@@ -2,7 +2,7 @@
 
     <property name="build" value="build"/>
 
-    <property name="version" value="0.9.5"/>
+    <property name="version" value="0.9.6"/>
 
     <property name="distribution" value="davenport-${version}"/>
 
@@ -28,6 +28,9 @@ dependencies: Checks that all class dependencies are met.
      distrib: Builds the "davenport" target, and additionally
               recreates the .zip and .tgz downloadable
               distributions.
+    reconfig: Refreshes the Davenport .war file with the current
+              version of the deployment descriptor ("web.xml")
+              from the source tree.
     checksum: Creates MD5 checksums of the .zip and .tgz
               distributions.
 
@@ -119,6 +122,11 @@ dependencies: Checks that all class dependencies are met.
                 </fileset>
             </classpath>
         </javac>
+        <copy todir="${build}/classes/smbdav">
+            <fileset dir="src/resources">
+                <include name="*.properties"/>
+            </fileset>
+        </copy>
     </target>
 
     <target name="jar" depends="compile">
@@ -138,6 +146,10 @@ dependencies: Checks that all class dependencies are met.
                 <include name="davenport.jar"/>
             </lib>
         </war>
+    </target>
+
+    <target name="reconfig">
+        <war update="true" warfile="davenport.war" webxml="src/misc/web.xml"/>
     </target>
 
     <target name="javadoc">

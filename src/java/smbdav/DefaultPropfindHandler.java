@@ -124,7 +124,9 @@ public class DefaultPropfindHandler extends AbstractHandler {
                 document = builderFactory.newDocumentBuilder().parse(
                         request.getInputStream());
             } catch (Exception ex) {
-                throw new IOException("Unable to parse request: " + ex);
+                throw new IOException(SmbDAVUtilities.getResource(
+                        DefaultPropfindHandler.class, "parseError",
+                                new Object[] { ex }, request.getLocale()));
             }
             Element propfind = document.getDocumentElement();
             Node child = null;

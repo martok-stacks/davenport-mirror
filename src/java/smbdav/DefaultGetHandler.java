@@ -142,8 +142,8 @@ public class DefaultGetHandler extends AbstractHandler {
             defaultTemplates = TransformerFactory.newInstance().newTemplates(
                     source);
         } catch (Exception ex) {
-            throw new UnavailableException(
-                    "Unable to load directory stylesheet: " + ex);
+            throw new UnavailableException(SmbDAVUtilities.getResource(
+                    DefaultGetHandler.class, "stylesheetError", null, null));
         }
         String configuration =
                 config.getInitParameter("directory.configuration");
@@ -161,8 +161,9 @@ public class DefaultGetHandler extends AbstractHandler {
             }
             this.configuration = collector.toByteArray();
         } catch (Exception ex) {
-            throw new UnavailableException(
-                    "Unable to load configuration page: " + ex);
+            throw new UnavailableException(SmbDAVUtilities.getResource(
+                    DefaultGetHandler.class, "configurationPageError",
+                            null, null));
         }
     }
 
@@ -279,7 +280,10 @@ public class DefaultGetHandler extends AbstractHandler {
                 properties = director.getAllProperties(file, href, 1);
             } catch (SmbAuthException ex) {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-                        "Unable to access directory listing for " + file);
+                        SmbDAVUtilities.getResource(DefaultGetHandler.class,
+                                "directoryAccessDenied",
+                                        new Object[] { file },
+                                                request.getLocale()));
                 return;
             }
             try {
@@ -402,7 +406,9 @@ public class DefaultGetHandler extends AbstractHandler {
         InputStream stream = getResourceAsStream(location);
         if (stream != null) return new StreamSource(stream);
         if (!allowExternal) {
-            throw new IllegalArgumentException("Stylesheet not found.");
+            throw new IllegalArgumentException(SmbDAVUtilities.getResource(
+                    DefaultGetHandler.class, "stylesheetNotFound",
+                            new Object[] { location }, null));
         }
         return new StreamSource(location);
     }

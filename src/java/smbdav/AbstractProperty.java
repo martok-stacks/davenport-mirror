@@ -191,7 +191,8 @@ public abstract class AbstractProperty implements Property {
     protected String getPrefix(Document document, String namespace) {
         Element root = document.getDocumentElement();
         if (root == null) {
-            throw new IllegalArgumentException("No document element exists.");
+            throw new IllegalArgumentException(SmbDAVUtilities.getResource(
+                    AbstractProperty.class, "noDocument", null, null));
         }
         NamedNodeMap attributes = root.getAttributes();
         for (int i = attributes.getLength() - 1; i >= 0; i--) {
@@ -203,8 +204,9 @@ public abstract class AbstractProperty implements Property {
             }
             if ("xmlns".equals(prefix)) return node.getLocalName();
         }
-        throw new IllegalArgumentException("No prefix has been assigned to \"" +
-                namespace + "\".");
+        throw new IllegalArgumentException(SmbDAVUtilities.getResource(
+                AbstractProperty.class, "noPrefix",
+                        new Object[] { namespace }, null));
     }
 
     /**
@@ -245,9 +247,9 @@ public abstract class AbstractProperty implements Property {
         String currentNamespace = getNamespace(document, prefix);
         if (currentNamespace != null) {
             if (currentNamespace.equals(namespace)) return;
-            throw new IOException("Prefix " + prefix +
-                    " has already been assigned to \"" + currentNamespace +
-                            "\".");
+            throw new IOException(SmbDAVUtilities.getResource(
+                    AbstractProperty.class, "prefixAlreadyAssigned",
+                            new Object[] { prefix, currentNamespace }, null));
         }
         document.getDocumentElement().setAttributeNS(XMLNS_NAMESPACE,
                 prefix != null ? "xmlns:" + prefix : "xmlns",

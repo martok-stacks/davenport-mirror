@@ -137,7 +137,9 @@ public class DefaultPropertiesBuilder implements PropertiesBuilder {
             document.appendChild(multistatus);
             return document;
         } catch (Exception ex) {
-            throw new IllegalStateException("Unable to create document: " + ex);
+            throw new IllegalStateException(SmbDAVUtilities.getResource(
+                    DefaultPropertiesBuilder.class, "cantCreateDocument",
+                            new Object[] { ex }, null));
         }
     }
 
@@ -255,9 +257,10 @@ public class DefaultPropertiesBuilder implements PropertiesBuilder {
                 try {
                     propertyMap.put(name, Class.forName(propertyClass));
                 } catch (Exception ex) {
-                    throw new UnavailableException(
-                            "Unable to load class for property \"" + name +
-                                    "\": " + ex);
+                    throw new UnavailableException(SmbDAVUtilities.getResource(
+                            DefaultPropertiesBuilder.class,
+                                    "cantCreateProperty", new Object[] {
+                                            name, ex }, null));
                 }
             }
         }
@@ -272,9 +275,9 @@ public class DefaultPropertiesBuilder implements PropertiesBuilder {
                 property.init(name, config);
                 replace(property);
             } catch (Exception ex) {
-                throw new UnavailableException(
-                        "Unable to instantiate property \"" + name + "\": " +
-                                ex);
+                throw new UnavailableException(SmbDAVUtilities.getResource(
+                        DefaultPropertiesBuilder.class, "cantCreateProperty",
+                                new Object[] { name, ex }, null));
             }
         }
     }

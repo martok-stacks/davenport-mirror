@@ -87,6 +87,12 @@ import jcifs.util.Base64;
  *     any machine offering SMB services can be used.</td>
  * </tr>
  * <tr>
+ *     <td><code>jcifs.netbios.wins</code></td>
+ *     <td>Specifies the IP address of a WINS server to be used in resolving
+ *     server and domain/workgroup names.  This is needed to locate
+ *     machines in other subnets.</td>
+ * </tr>
+ * <tr>
  *     <td><code>jcifs.http.enableBasic</code></td>
  *     <td>Enables/disables HTTP Basic authentication support.  This
  *     allows non-NTLM-capable browsers to successfully authenticate.
@@ -148,7 +154,11 @@ public class Davenport extends HttpServlet {
 
     private boolean alwaysAuthenticate;
 
+    private boolean acceptBasic;
+
     private boolean enableBasic;
+
+    private boolean enableNtlm;
 
     private boolean insecureBasic;
 
@@ -175,13 +185,19 @@ public class Davenport extends HttpServlet {
             try {
                 this.defaultServer = UniAddress.getByName(defaultServer, true);
             } catch (UnknownHostException ex) {
-                throw new UnavailableException(
-                        "Default server could not be located.");
+                throw new UnavailableException(SmbDAVUtilities.getResource(
+                        Davenport.class, "unknownDefaultServer",
+                                new Object[] { defaultServer }, null));
             }
         }
+        String acceptBasic = config.getInitParameter("acceptBasic");
+        this.acceptBasic = Boolean.valueOf(acceptBasic).booleanValue();
         String enableBasic = Config.getProperty("jcifs.http.enableBasic");
         this.enableBasic = (enableBasic == null) ||
                 Boolean.valueOf(enableBasic).booleanValue();
+        String enableNtlm = config.getInitParameter("enableNtlm");
+        this.enableNtlm = (enableNtlm == null) ||
+                Boolean.valueOf(enableNtlm).booleanValue();
         this.insecureBasic = Boolean.valueOf(
                 Config.getProperty("jcifs.http.insecureBasic")).booleanValue();
         realm = Config.getProperty("jcifs.http.basicRealm");
@@ -209,7 +225,7 @@ public class Davenport extends HttpServlet {
      */
     protected void service (HttpServletRequest request,
             HttpServletResponse response) throws IOException, ServletException {
-        boolean usingBasic = enableBasic &&
+        boolean usingBasic = (acceptBasic || enableBasic) &&
                 (insecureBasic || request.isSecure());
         String pathInfo = request.getPathInfo();
         if (pathInfo == null || "".equals(pathInfo)) pathInfo = "/";
@@ -219,7 +235,9 @@ public class Davenport extends HttpServlet {
             server = getServer(target);
         } catch (UnknownHostException ex) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND,
-                    "Unable to identify or locate \"" + target + "\".");
+                    SmbDAVUtilities.getResource(Davenport.class,
+                            "unknownServer", new Object[] { target },
+                                    request.getLocale()));
             return;
         }
         NtlmPasswordAuthentication authentication = null;
@@ -253,7 +271,7 @@ public class Davenport extends HttpServlet {
             try {
                 SmbSession.logon(server, authentication);
             } catch (SmbAuthException ex) {
-                response.setHeader("WWW-Authenticate", "NTLM");
+                if (enableNtlm) response.setHeader("WWW-Authenticate", "NTLM");
                 response.addHeader("WWW-Authenticate", "Basic realm=\"" +
                         realm + "\"");
                 response.setHeader("Connection", "close");
@@ -262,8 +280,8 @@ public class Davenport extends HttpServlet {
                 return;
             }
         } else if (alwaysAuthenticate && server != null) {
-            response.setHeader("WWW-Authenticate", "NTLM");
-            if (usingBasic) {
+            if (enableNtlm) response.setHeader("WWW-Authenticate", "NTLM");
+            if (usingBasic && enableBasic) {
                 response.addHeader("WWW-Authenticate", "Basic realm=\"" +
                         realm + "\"");
             }
@@ -280,8 +298,8 @@ public class Davenport extends HttpServlet {
                 try {
                     response.reset();
                 } catch (IllegalStateException ignore) { }
-                response.setHeader("WWW-Authenticate", "NTLM");
-                if (usingBasic) {
+                if (enableNtlm) response.setHeader("WWW-Authenticate", "NTLM");
+                if (usingBasic && enableBasic) {
                     response.addHeader("WWW-Authenticate", "Basic realm=\"" +
                             realm + "\"");
                 }
@@ -329,8 +347,9 @@ public class Davenport extends HttpServlet {
                 handlers.put(method.toUpperCase(), Class.forName(
                         config.getInitParameter(name)).newInstance());
             } catch (Exception ex) {
-                throw new UnavailableException("Could not create handler for " +
-                        method + " method: " + ex);
+                throw new UnavailableException(SmbDAVUtilities.getResource(
+                        Davenport.class, "cantCreateHandler",
+                                new Object[] { method, ex }, null));
             }
         }
         Iterator iterator = handlers.values().iterator();
@@ -354,7 +373,8 @@ public class Davenport extends HttpServlet {
         } catch (IOException ex) {
             throw ex;
         } catch (Exception ex) {
-            throw new IOException("Unable to get authentication server: " + ex);
+            throw new IOException(SmbDAVUtilities.getResource(Davenport.class,
+                    "unknownError", new Object[] { ex }, null));
         }
     }
 

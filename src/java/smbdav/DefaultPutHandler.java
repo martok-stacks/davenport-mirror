@@ -72,7 +72,8 @@ public class DefaultPutHandler extends AbstractHandler {
         boolean existsCurrently = file.exists();
         if (existsCurrently && !file.isFile()) {
             response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED,
-                    "PUT is only valid for non-collection resources.");
+                    SmbDAVUtilities.getResource(DefaultPutHandler.class,
+                            "collectionTarget", null, request.getLocale()));
             return;
         }
         SmbFile parent = createSmbFile(file.getParent(), auth);

@@ -31,7 +31,10 @@
                 If the user does not enter a domain during authentication
                 (i.e., "username" instead of "MYDOMAIN\username"), this
                 specifies the default domain against which the user should
-                be authenticated.
+                be authenticated.  This can also be used in conjunction with
+                "jcifs.smb.client.username" and "jcifs.smb.client.password" to
+                specify an account to access the SMB network during
+                anonymous browsing.
 
              No default setting.
         -->
@@ -39,6 +42,38 @@
         <init-param>
             <param-name>jcifs.smb.client.domain</param-name>
             <param-value>MYDOMAIN</param-value>
+        </init-param>
+        -->
+
+        <!-- jcifs.smb.client.username:
+                Provides a default username.  If anonymous browsing is used,
+                this can be employed in conjunction with
+                "jcifs.smb.client.domain" and "jcifs.smb.client.password"
+                to specify an account to access the SMB network on the
+                back end.
+
+             No default setting.
+        -->
+        <!--
+        <init-param>
+            <param-name>jcifs.smb.client.username</param-name>
+            <param-value>username</param-value>
+        </init-param>
+        -->
+
+        <!-- jcifs.smb.client.password:
+                Provides a default password.  If anonymous browsing is used,
+                this can be employed in conjunction with
+                "jcifs.smb.client.domain" and "jcifs.smb.client.username"
+                to specify an account to access the SMB network on the
+                back end.
+
+             No default setting.
+        -->
+        <!--
+        <init-param>
+            <param-name>jcifs.smb.client.password</param-name>
+            <param-value>password</param-value>
         </init-param>
         -->
 
@@ -81,6 +116,25 @@
         </init-param>
         -->
 
+        <!-- enableNtlm:
+                Enables/Disables NTLM authentication.  NTLM is the default
+                authentication mechanism; by setting this to "false", NTLM
+                is no longer offered by the server.  This can be used
+                in conjunction with "jcifs.http.enableBasic" to allow
+                only HTTP Basic authentication.  This can be useful for
+                widest client compatibility and reduces issues in Windows
+                2003 environments, but can significantly reduce the security
+                of the system if appropriate measures are not followed.
+
+             Default is "true" (enabled).
+        -->
+        <!--
+        <init-param>
+            <param-name>enableNtlm</param-name>
+            <param-value>true</param-value>
+        </init-param>
+        -->
+
         <!-- jcifs.http.enableBasic:
                 Enables/Disables HTTP Basic authentication.  Basic will be
                 used by clients which are not NTLM-capable.  HTTP Basic will
@@ -109,6 +163,24 @@
         <!--
         <init-param>
             <param-name>jcifs.http.insecureBasic</param-name>
+            <param-value>false</param-value>
+        </init-param>
+        -->
+
+        <!-- acceptBasic:
+                Accepts HTTP Basic authentication.  Basic credentials will be
+                accepted when presented by clients.  This differs from the
+                "jcifs.http.enableBasic" in that HTTP Basic authentication
+                will not be offered by the server; just accepted if the
+                client goes ahead and sends it.  HTTP Basic will
+                only be accepted over HTTPS by default (see also
+                "jcifs.http.insecureBasic").
+
+             Default is "false" (disabled).
+        -->
+        <!--
+        <init-param>
+            <param-name>acceptBasic</param-name>
             <param-value>false</param-value>
         </init-param>
         -->

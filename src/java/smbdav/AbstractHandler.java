@@ -252,7 +252,9 @@ public abstract class AbstractHandler implements MethodHandler {
         } catch (SmbException ex) {
             throw ex;
         } catch (Exception ex) {
-            throw new IOException("Unable to create SMB file: " + ex);
+            throw new IOException(SmbDAVUtilities.getResource(
+                    AbstractHandler.class, "cantCreateSmbFile",
+                            new Object[] { ex }, null));
         }
     }
 

@@ -24,11 +24,14 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import java.text.DateFormat;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.Locale;
 import java.util.Map;
+import java.util.ResourceBundle;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 
@@ -44,10 +47,10 @@ import jcifs.smb.SmbFile;
 public class SmbDAVUtilities {
 
     private static final DateFormat CREATION_FORMAT =
-            new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+            new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
 
     private static final DateFormat LAST_MODIFIED_FORMAT =
-            new SimpleDateFormat("E, dd MMM yyyy HH:mm:ss z");
+            new SimpleDateFormat("E, dd MMM yyyy HH:mm:ss z", Locale.US);
 
     private static MessageDigest DIGEST;
 
@@ -58,12 +61,34 @@ public class SmbDAVUtilities {
         try {
             DIGEST = MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException(
-                    "MD5 digest algorithm not available.");
+            throw new IllegalStateException(getResource(SmbDAVUtilities.class,
+                    "md5Unavailable", null, null));
         }
     }
 
     private SmbDAVUtilities() { }
+
+    /**
+     * Returns the specified resource string value.
+     *
+     * @param context A class representing the context for the resource
+     * string.
+     * @param resource The resource name.
+     * @param parameters Substitution parameters for the message.
+     * @param locale The desired locale.
+     * @return A <code>String</code> containing the resource value.
+     */
+    public static String getResource(Class context, String resource,
+            Object[] parameters, Locale locale) {
+        ResourceBundle resources = (locale == null) ?
+                ResourceBundle.getBundle("smbdav.Resources") :
+                        ResourceBundle.getBundle("smbdav.Resources", locale);
+        String pattern = (context != null) ? resources.getString(
+                context.getName() + "." + resource) :
+                        resources.getString(resource);
+        return (parameters == null) ? pattern :
+                MessageFormat.format(pattern, parameters);
+    }
 
     /**
      * Formats a timestamp (representing milliseconds since the epoch)

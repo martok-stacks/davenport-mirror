@@ -69,7 +69,8 @@ public class DefaultDeleteHandler extends AbstractHandler {
             response.flushBuffer();
         } catch (SmbAuthException ex) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-                    "Operation denied.");
+                    SmbDAVUtilities.getResource(DefaultDeleteHandler.class,
+                            "accessDenied", null, request.getLocale()));
         }
     }
 

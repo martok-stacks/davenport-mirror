@@ -81,7 +81,8 @@ public class DefaultCopyHandler extends AbstractHandler {
         SmbFile destinationFile = createSmbFile(destination, auth);
         if (destinationFile.equals(file)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN,
-                    "Destination and source are the same resource.");
+                    SmbDAVUtilities.getResource(DefaultCopyHandler.class,
+                            "sameResource", null, request.getLocale()));
             return;
         }
         boolean overwritten = false;
@@ -101,7 +102,8 @@ public class DefaultCopyHandler extends AbstractHandler {
             response.setContentLength(0);
         } catch (SmbAuthException ex) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-                    "Operation denied.");
+                    SmbDAVUtilities.getResource(DefaultCopyHandler.class,
+                            "accessDenied", null, request.getLocale()));
         }
     }
 

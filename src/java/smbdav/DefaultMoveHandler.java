@@ -100,10 +100,12 @@ public class DefaultMoveHandler extends AbstractHandler {
             response.flushBuffer();
         } catch (SmbAuthException ex) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-                    "Operation denied.");
+                    SmbDAVUtilities.getResource(DefaultMoveHandler.class,
+                            "accessDenied", null, request.getLocale()));
         } catch (SmbException ex) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN,
-                    "Unable to delete.");
+                    SmbDAVUtilities.getResource(DefaultMoveHandler.class,
+                            "cantDeleteSource", null, request.getLocale()));
         }
     }
 

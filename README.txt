@@ -6,6 +6,85 @@ Davenport and its source code can be obtained freely from:
     http://davenport.sourceforge.net
 
 --------------------------------------------------------------------------------
+Version 0.9.6: February 9, 2004
+
+SUMMARY OF CHANGES:
+    Fixed a bug involving date formatting in some WebDAV properties.
+    Added a configuration option to accept HTTP Basic credentials if
+    proactively offered by the client.
+    Added a configuration option to disable NTLM authentication for improved
+    functionality in Windows 2003 environments.
+    Added a build target to reconfigure the WAR file using an updated
+    deployment descriptor.
+    Added preliminary localization support.
+    Updated bundled jCIFS to version 0.7.19.
+
+
+CHANGE:
+    Fixed a bug involving date formatting in some WebDAV properties.
+DETAILS:
+    The date formatter used to produce the value for the "getcreationdate"
+    and "getlastmodified" properties used the platform's default locale.
+    This would result in invalid HTTP date formats on non-English platforms.
+RESOLUTION:
+    Specified the US locale for the relevant date formatters.
+
+
+CHANGE:
+    Added a configuration option to accept HTTP Basic credentials if
+    proactively offered by the client.
+DETAILS:
+    Added the "acceptBasic" configuration option.  This will use HTTP
+    Basic authentication if it is presented by the client, even if
+    Davenport is not configured to offer HTTP Basic.  This is useful
+    for clients that revert to HTTP Basic when presented with unrecognized
+    authentication mechanisms (such as NTLM).  Additionally, some containers
+    have been found to support only a single mechanism at a time, preventing
+    Davenport from offering both NTLM and Basic.  This setting would allow
+    such installations to offer only NTLM, but accept Basic from clients
+    that don't support NTLM.
+
+
+CHANGE:
+    Added a configuration option to disable NTLM authentication for improved
+    functionality in Windows 2003 environments.
+DETAILS:
+    Added the "enableNtlm" configuration option.  When set to "false", this
+    will prevent Davenport from offering NTLM authentication.  By default,
+    Windows 2003 servers are configured to require SMB signing.  jCIFS will
+    support SMB signing, but the password is required.  Davenport only has
+    access to the user's password under HTTP Basic authentication.  This
+    setting can allow Davenport to operate in such an environment.  Note
+    that Basic authentication is highly insecure; appropriate precautions
+    should be taken by administrators if this approach is taken.
+
+
+CHANGE:
+    Added a build target to reconfigure the WAR file using an updated
+    deployment descriptor.
+DETAILS:
+    The Ant build script now includes a "reconfig" target which will refresh
+    "davenport.war" with the current deployment descriptor ("web.xml") from
+    the source tree.  This simplifies the process of tuning the deployment
+    descriptor to the local environment.
+
+
+CHANGE:
+    Added preliminary localization support.
+DETAILS:
+    Error messages and other strings previously hardcoded in the application
+    source are now loaded from a resource bundle.  This facilitates translation
+    to other languages and localities.
+
+
+CHANGE:
+    Updated bundled jCIFS to version 0.7.19.
+DETAILS:
+    jCIFS 0.7.19 includes numerous enhancements over the previous bundled
+    version (0.7.11).  This includes support for SMB signing, which is
+    required by default for interoperability with Windows 2003 servers.
+
+--------------------------------------------------------------------------------
 Version 0.9.5: July 16, 2003
 
 Very special thanks to Ronald Tschalär, who identified and provided patches for
