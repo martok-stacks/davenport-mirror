@@ -37,7 +37,8 @@ import smbdav.AbstractProperty;
  */
 public class GetContentTypeProperty extends AbstractProperty {
 
-    public int retrieve(SmbFile file, Element element) throws IOException {
+    public int retrieve(SmbFile file, Element element)
+            throws IOException {
         String contentType = getServletConfig().getServletContext(
                 ).getMimeType(file.getName());
         if (contentType == null) contentType = "application/octet-stream";

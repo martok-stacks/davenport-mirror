@@ -21,7 +21,10 @@ package smbdav;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.StringTokenizer;
 
 import javax.servlet.ServletConfig;
@@ -44,7 +47,12 @@ import jcifs.smb.SmbFile;
  */
 public abstract class AbstractHandler implements MethodHandler {
 
+    private static final Set KNOWN_WORKGROUPS =
+            Collections.synchronizedSet(new HashSet());
+
     private ServletConfig config;
+
+    private String requestUriCharset;
 
     /**
      * Initializes the method handler.  This implementation stores the
@@ -60,6 +68,8 @@ public abstract class AbstractHandler implements MethodHandler {
      */
     public void init(ServletConfig config) throws ServletException {
         this.config = config;
+        requestUriCharset = config.getInitParameter("request-uri.charset");
+        if (requestUriCharset == null) requestUriCharset = "ISO-8859-1";
     }
 
     public void destroy() {
@@ -78,9 +88,22 @@ public abstract class AbstractHandler implements MethodHandler {
     }
 
     /**
+     * Returns the charset used to interpret request URIs.  Davenport will
+     * attempt to use this charset before resorting to UTF-8.
+     *
+     * @return A <code>String</code> containing the charset name.
+     */
+    protected String getRequestURICharset() {
+        return requestUriCharset;
+    }
+
+    /**
      * Convenience method to convert a given HTTP URL to the corresponding
      * SMB URL.  The provided request is used to determine the servlet base;
      * this is stripped from the given HTTP URL to get the SMB path.
+     * Escaped characters within the specified HTTP URL are interpreted
+     * as members of the character set returned by
+     * <code>getRequestURICharset()</code>.
      * <b>Note:</b> Currently, the jCIFS library does not handle escaped
      * characters in SMB URLs (i.e.,
      * "<code>smb://server/share/my%20file.txt</code>".  The SMB URLs
@@ -97,6 +120,33 @@ public abstract class AbstractHandler implements MethodHandler {
      */
     protected String getSmbURL(HttpServletRequest request, String httpUrl)
             throws IOException {
+        return getSmbURL(request, httpUrl, getRequestURICharset());
+    }
+
+    /**
+     * Convenience method to convert a given HTTP URL to the corresponding
+     * SMB URL.  The provided request is used to determine the servlet base;
+     * this is stripped from the given HTTP URL to get the SMB path.
+     * Escaped characters within the specified HTTP URL are interpreted
+     * as members of the given character set.
+     * <b>Note:</b> Currently, the jCIFS library does not handle escaped
+     * characters in SMB URLs (i.e.,
+     * "<code>smb://server/share/my%20file.txt</code>".  The SMB URLs
+     * returned by this method are unescaped for compatibility with jCIFS
+     * (i.e., "<code>smb://server/share/my file.txt</code>".  This may result
+     * in URLs which do not conform with RFC 2396.  Such URLs may not be
+     * accepted by systems expecting compliant URLs (such as Java 1.4's
+     * <code>java.net.URI</code> class).
+     *
+     * @param request The servlet request upon which the HTTP URL is based.
+     * @param httpUrl An HTTP URL from which the SMB URL is derived.
+     * @param charset The character set that should be used to interpret the
+     * HTTP URL.
+     * @throws IOException If an SMB URL cannot be constructed from the
+     * given request and HTTP URL.
+     */
+    protected String getSmbURL(HttpServletRequest request, String httpUrl,
+            String charset) throws IOException {
         if (httpUrl == null) return null;
         String base = request.getContextPath() + request.getServletPath();
         int index = httpUrl.indexOf(base);
@@ -104,12 +154,26 @@ public abstract class AbstractHandler implements MethodHandler {
         index += base.length();
         httpUrl = (index < httpUrl.length()) ?
                 httpUrl.substring(index) : "/";
-        return "smb:/" + unescape(httpUrl);
+        SmbFile file = new SmbFile("smb:/" + unescape(httpUrl, charset));
+        String server = file.getServer();
+        base = file.getCanonicalPath();
+        if (KNOWN_WORKGROUPS.contains(server)) {
+            StringBuffer smb = new StringBuffer(base);
+            smb.delete(0, server.length() + 6); // remove "smb://" + workgroup
+            if (smb.length() > 1) {
+                base = smb.insert(0, "smb:/").toString();
+            }
+        }
+        return base;
     }
 
     /**
      * Convenience method to retrieve the <code>SmbFile</code> that
-     * is the target of the given request.
+     * is the target of the given request.  This will attempt to obtain
+     * the file by interpreting the URL with the character set given by
+     * <code>getRequestURICharset()</code>; if this file does not exist, a
+     * second attempt will be made using the UTF-8 charset.  If neither file
+     * exists, the result of the first attempt will be returned.
      * 
      * @param request The request that is being serviced.
      * @param auth The user's authentication information.
@@ -118,8 +182,41 @@ public abstract class AbstractHandler implements MethodHandler {
      */
     protected SmbFile getSmbFile(HttpServletRequest request,
             NtlmPasswordAuthentication auth) throws IOException {
-        return createSmbFile(
-                getSmbURL(request, request.getRequestURL().toString()), auth);
+        String url = request.getRequestURL().toString();
+        SmbFile file = null;
+        IOException exception = null;
+        boolean exists = false;
+        String charset = getRequestURICharset();
+        try {
+            file = createSmbFile(getSmbURL(request, url, charset), auth);
+            exists = file.exists();
+        } catch (IOException ex) {
+            exception = ex;
+        }
+        if (exists) return file;
+        if (charset.equals("UTF-8")) {
+            if (exception != null) throw exception;
+            return file;
+        }
+        SmbFile utf8 = null;
+        IOException utf8Exception = null;
+        try {
+            utf8 = createSmbFile(getSmbURL(request, url, "UTF-8"), auth);
+            exists = utf8.exists();
+        } catch (IOException ex) {
+            utf8Exception = ex;
+        }
+        if (exists) return utf8;
+        if (file != null) {
+            if (exception != null) throw exception;
+            return file;
+        }
+        if (utf8 != null) {
+            if (utf8Exception != null) throw utf8Exception;
+            return utf8;
+        }
+        if (exception != null) throw exception;
+        return null;
     }
 
     /**
@@ -146,6 +243,10 @@ public abstract class AbstractHandler implements MethodHandler {
                 smbFile = (authentication != null) ?
                         new SmbFile(smbUrl, authentication) :
                                 new SmbFile(smbUrl);
+            }
+            if (smbFile.getType() == SmbFile.TYPE_WORKGROUP) {
+                String server = smbFile.getServer();
+                if (server != null) KNOWN_WORKGROUPS.add(smbFile.getServer());
             }
             return smbFile;
         } catch (SmbException ex) {
@@ -237,7 +338,7 @@ public abstract class AbstractHandler implements MethodHandler {
         return (file.isDirectory());
     }
 
-    private String unescape(String escaped) throws IOException {
+    private String unescape(String escaped, String charset) throws IOException {
         StringTokenizer tokenizer = new StringTokenizer(escaped, "%", true);
         StringBuffer buffer = new StringBuffer();
         ByteArrayOutputStream encoded = new ByteArrayOutputStream();
@@ -255,7 +356,7 @@ public abstract class AbstractHandler implements MethodHandler {
                     token = tokenizer.nextToken();
                 }
             }
-            buffer.append(encoded.toString("UTF-8"));
+            buffer.append(encoded.toString(charset));
             encoded.reset();
             if (!token.equals("%")) buffer.append(token);
         }

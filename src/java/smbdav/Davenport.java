@@ -217,7 +217,6 @@ public class Davenport extends HttpServlet {
                     "Unable to identify or locate \"" + target + "\".");
             return;
         }
-System.out.println("Got Server: " + server);
         NtlmPasswordAuthentication authentication = null;
         String authorization = request.getHeader("Authorization");
         if (authorization != null && authorization.startsWith("NTLM ")) {
@@ -225,7 +224,6 @@ System.out.println("Got Server: " + server);
             authentication = NTLM_SSP.doAuthentication(request, response,
                     challenge);
             if (authentication == null) return;
-System.out.println("AUTHENTICATED " + authentication.getDomain() + "\\" + authentication.getUsername());
         } else if (authorization != null && usingBasic &&
                 authorization.startsWith("Basic ")) {
             String authInfo = new String(
@@ -248,9 +246,7 @@ System.out.println("AUTHENTICATED " + authentication.getDomain() + "\\" + authen
             authentication = new NtlmPasswordAuthentication(domain, user,
                     password);
             try {
-System.out.println("Attempting basic auth of " + authentication.getDomain() + "\\" + authentication.getUsername());
                 SmbSession.logon(server, authentication);
-System.out.println("BASIC AUTHENTICATED " + authentication.getDomain() + "\\" + authentication.getUsername());
             } catch (SmbAuthException ex) {
                 response.setHeader("WWW-Authenticate", "NTLM");
                 response.addHeader("WWW-Authenticate", "Basic realm=\"" +
@@ -339,11 +335,9 @@ System.out.println("BASIC AUTHENTICATED " + authentication.getDomain() + "\\" + 
     }
 
     private UniAddress getServer(String target) throws IOException {
-System.out.println("Getting server for " + target);
         try {
             SmbFile file = new SmbFile(target);
             String host = file.getServer();
-System.out.println("file.getServer() gives " + host);
             if (host == null) return defaultServer;
             file = new SmbFile(file, "/");
             try {

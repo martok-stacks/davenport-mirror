@@ -37,7 +37,8 @@ import smbdav.SmbDAVUtilities;
  */
 public class GetLastModifiedProperty extends AbstractProperty {
 
-    public int retrieve(SmbFile file, Element element) throws IOException {
+    public int retrieve(SmbFile file, Element element)
+            throws IOException {
         element.setAttributeNS(WEB_FOLDERS_NAMESPACE, "w:dt",
                 "dateTime.rfc1123");
         element.appendChild(element.getOwnerDocument().createTextNode(

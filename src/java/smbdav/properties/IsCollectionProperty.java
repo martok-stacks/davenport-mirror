@@ -37,7 +37,8 @@ import smbdav.AbstractProperty;
  */
 public class IsCollectionProperty extends AbstractProperty {
 
-    public int retrieve(SmbFile file, Element element) throws IOException {
+    public int retrieve(SmbFile file, Element element)
+            throws IOException {
         element.setAttributeNS(WEB_FOLDERS_NAMESPACE, "w:dt", "boolean");
         element.appendChild(element.getOwnerDocument().createTextNode(
                 file.isFile() ? "0" : "1"));

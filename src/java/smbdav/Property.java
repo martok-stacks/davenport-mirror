@@ -119,7 +119,8 @@ public interface Property {
      * @throws IOException If an IO error occurs while updating the
      * property value.
      */
-    public int update(SmbFile file, Element element) throws IOException;
+    public int update(SmbFile file, Element element)
+            throws IOException;
 
     /**
      * Indicates whether an <code>Object</code> is equivalent to this
@@ -154,6 +155,7 @@ public interface Property {
      * @throws IOException If an IO error occurs while retrieving the
      * property value.
      */
-    public int retrieve(SmbFile file, Element element) throws IOException;
+    public int retrieve(SmbFile file, Element element)
+            throws IOException;
 
 }

@@ -26,9 +26,24 @@
         accessing internal shared drives over the internet without
         requiring a VPN.
         </p>
+        <h3>Obtaining Davenport</h3>
         <p>
         Davenport is free software, provided under the
         <a href="../license.txt">GNU Lesser General Public License</a>.
+        It can be obtained from the Davenport SourceForge project site at:
+        </p>
+        <p>
+        <a class="code" href="http://sourceforge.net/projects/davenport">http://sourceforge.net/projects/davenport</a>
+        </p>
+        <p>
+        The download area (from which the software can be obtained directly)
+        is at:
+        </p>
+        <p>
+        <a class="code" href="http://sourceforge.net/project/showfiles.php?group_id=78146">http://sourceforge.net/project/showfiles.php?group_id=78146</a>
+        </p>
+        <p>
+        Releases are distributed in both .zip and .tgz formats.
         </p>
         <h3>Getting Started</h3>
         <p>
@@ -73,10 +88,16 @@
         </p>
         <h3>Configuration</h3>
         <p>
+        Configuration of Davenport is performed by editing the "web.xml"
+        deployment descriptor.  The packaged descriptor contains commented
+        configuration settings, and provides detailed descriptions of
+        all available items.  Reviewing this file is recommended prior
+        to deployment, as configuration items may change between releases.
+        </p>
+        <p>
         jCIFS environment options can be set via the Davenport servlet's
-        initialization parameters in the web.xml deployment descriptor.
-        jCIFS Configuration settings of particular interest to the Davenport
-        servlet are listed below.
+        deployment descriptor.  jCIFS settings of particular interest to the
+        Davenport servlet are listed below.
         </p>
         <p>
         <table border="1">
@@ -129,6 +150,19 @@
             <td class="code">jcifs.http.basicRealm</td>
             <td>Specifies the HTTP Basic realm that will be presented during
             authentication.  Defaults to "Davenport".</td>
+        </tr>
+        <tr>
+            <td class="code">jcifs.netbios.wins</td>
+            <td>Specifies the IP address of the WINS server.  This is
+            recommended if a WINS server is present; it is required when
+            accessing hosts on different subnets.</td>
+        </tr>
+        <tr>
+            <td class="code">jcifs.resolveOrder</td>
+            <td>A comma-separated list of name resolution methods.  This
+            specifies which hostname resolution methods will be used, and in
+            what order.  Possible values (in default order) are LMHOSTS,
+            WINS, BCAST, and DNS.</td>
         </tr>
         </table>
         </p>
@@ -268,7 +302,21 @@
             <td class="code">davenport</td>
             <td>
             Builds the "all" target, followed by "clean".  This reproduces
-            the distribution package.
+            the distribution package contents.
+            </td>
+        </tr>
+        <tr>
+            <td class="code">distrib</td>
+            <td>
+            Builds the "davenport" target, and additionally recreates the
+            .zip and .tgz downloadable distributions.
+            </td>
+        </tr>
+        <tr>
+            <td class="code">checksum</td>
+            <td>
+            Creates MD5 checksums of the .zip and .tgz distributions
+            (Ant 1.5 or higher).
             </td>
         </tr>
         <tr>

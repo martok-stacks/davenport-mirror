@@ -37,7 +37,8 @@ import smbdav.SmbDAVUtilities;
  */
 public class GetETagProperty extends AbstractProperty {
 
-    public int retrieve(SmbFile file, Element element) throws IOException {
+    public int retrieve(SmbFile file, Element element)
+            throws IOException {
         String etag = SmbDAVUtilities.getETag(file);
         if (etag == null) return HttpServletResponse.SC_NOT_FOUND;
         element.appendChild(element.getOwnerDocument().createTextNode(etag));

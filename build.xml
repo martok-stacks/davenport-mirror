@@ -2,10 +2,14 @@
 
     <property name="build" value="build"/>
 
+    <property name="version" value="0.9.0"/>
+
+    <property name="distribution" value="davenport-${version}"/>
+
     <target name="usage">
-        <echo>Available Build Targets:</echo>
-        <echo/>
         <echo>
+Available Build Targets:
+
 dependencies: Checks that all class dependencies are met.
      compile: Builds the Davenport classes.
          jar: Packages the Davenport classes into a .jar file.
@@ -13,22 +17,60 @@ dependencies: Checks that all class dependencies are met.
               for deployment.
      javadoc: Creates the Javadoc API documentation.
          all: Performs all of the above.
-        </echo>
-        <echo>
+
        clean: Removes build artifacts.
     allclean: Removes distribution and build artifacts.  This
               includes the .jar and .war files, .class files, and
               the Javadoc API documentation.
-        </echo>
-        <echo>
+
    davenport: Builds the "all" target, followed by "clean".  This
               reproduces the distribution package contents.
      distrib: Builds the "davenport" target, and additionally
-              recreates the *.zip and *.tgz downloadable
+              recreates the .zip and .tgz downloadable
               distributions.
-        </echo>
-        <echo>
+    checksum: Creates MD5 checksums of the .zip and .tgz
+              distributions.
+
        usage: Displays this message.</echo>
+    </target>
+
+    <target name="hasServlet" unless="hasServlet">
+        <fail>
+
+    The Java Servlet API classes could not be found.  These files can be
+    obtained from:
+
+        http://java.sun.com/products/servlet/download.html
+        </fail>
+    </target>
+
+    <target name="hasJAXP" unless="hasJAXP">
+        <fail>
+
+    The Java API for XML Processing (JAXP) XML Parser classes could not
+    be found.  These files can be obtained from:
+
+        http://java.sun.com/xml/downloads/jaxp.html
+        </fail>
+    </target>
+
+    <target name="hasXSLT" unless="hasXSLT">
+        <fail>
+
+    The Java API for XML Processing (JAXP) XSLT Transformer classes could
+    not be found.
+
+        http://java.sun.com/xml/downloads/jaxp.html
+        </fail>
+    </target>
+
+    <target name="hasjCIFS" unless="hasjCIFS">
+        <fail>
+
+    The jCIFS classes could not be found.  These files can be obtained from:
+
+        http://jcifs.samba.org/
+        </fail>
     </target>
 
     <target name="dependencies">
@@ -40,38 +82,15 @@ dependencies: Checks that all class dependencies are met.
                 </fileset>
             </classpath>
         </available>
-        <fail unless="hasServlet">
-
-    The Java Servlet API classes could not be found.  These files can be
-    obtained from:
-
-        http://java.sun.com/products/servlet/download.html
-        </fail>
-        <condition property="hasJAXP">
-            <and>
-                <available classname="org.w3c.dom.Document">
-                    <classpath>
-                        <fileset dir="lib">
-                            <include name="**/*.jar"/>
-                        </fileset>
-                    </classpath>
-                </available>
-                <available classname="javax.xml.parsers.DocumentBuilder">
-                    <classpath>
-                        <fileset dir="lib">
-                            <include name="**/*.jar"/>
-                        </fileset>
-                    </classpath>
-                </available>
-            </and>
-        </condition>
-        <fail unless="hasJAXP">
-
-    The Java API for XML Processing (JAXP) XML Parser classes could not
-    be found.  These files can be obtained from:
-
-        http://java.sun.com/xml/downloads/jaxp.html
-        </fail>
+        <antcall target="hasServlet"/>
+        <available classname="javax.xml.parsers.DocumentBuilder" property="hasJAXP">
+            <classpath>
+                <fileset dir="lib">
+                    <include name="**/*.jar"/>
+                </fileset>
+            </classpath>
+        </available>
+        <antcall target="hasJAXP"/>
         <available classname="javax.xml.transform.Transformer" property="hasXSLT">
             <classpath>
                 <fileset dir="lib">
@@ -79,13 +98,7 @@ dependencies: Checks that all class dependencies are met.
                 </fileset>
             </classpath>
         </available>
-        <fail unless="hasXSLT">
-
-    The Java API for XML Processing (JAXP) XSLT Transformer classes could
-    not be found.
-
-        http://java.sun.com/xml/downloads/jaxp.html
-        </fail>
+        <antcall target="hasXSLT"/>
         <available classname="jcifs.http.NtlmSsp" property="hasjCIFS">
             <classpath>
                 <fileset dir="lib">
@@ -93,12 +106,7 @@ dependencies: Checks that all class dependencies are met.
                 </fileset>
             </classpath>
         </available>
-        <fail unless="hasjCIFS">
-
-    The jCIFS classes could not be found.  These files can be obtained from:
-
-        http://jcifs.samba.org/
-        </fail>
+        <antcall target="hasjCIFS"/>
     </target>
 
     <target name="compile" depends="dependencies">
@@ -113,15 +121,15 @@ dependencies: Checks that all class dependencies are met.
     </target>
 
     <target name="jar" depends="compile">
-        <jar destfile="davenport.jar">
-            <metainf dir="src/xsl"/>
-            <metainf dir="src/html"/>
+        <jar jarfile="davenport.jar">
+            <zipfileset prefix="META-INF" dir="src/xsl"/>
+            <zipfileset prefix="META-INF" dir="src/html"/>
             <fileset dir="${build}/classes"/>
         </jar>
     </target>
 
     <target name="war" depends="jar">
-        <war destfile="davenport.war" webxml="src/misc/web.xml">
+        <war warfile="davenport.war" webxml="src/misc/web.xml">
             <lib dir="lib">
                 <include name="**/*.jar"/>
             </lib>
@@ -132,41 +140,44 @@ dependencies: Checks that all class dependencies are met.
     </target>
 
     <target name="javadoc">
-        <javadoc destdir="doc/api" overview="doc/api/overview.html" author="true" version="true" use="true" windowtitle="Davenport" doctitle="&lt;img src='../davenport.gif'&gt;" stylesheetfile="doc/api/stylesheet.css">
+        <javadoc destdir="doc/api"
+            packagenames="smbdav.*"
+            overview="doc/api/overview.html"
+            author="true"
+            version="true"
+            use="true"
+            windowtitle="Davenport"
+            doctitle="&lt;img src='../davenport.gif'&gt;"
+            stylesheetfile="doc/api/stylesheet.css"
+            bottom="&lt;i&gt;Copyright &#169; 2003 Eric Glass&lt;/i&gt;">
             <classpath>
                 <pathelement path="${java.class.path}"/>
                 <fileset dir="lib">
                     <include name="**/*.jar"/>
                 </fileset>
             </classpath>
-            <packageset dir="src/java"/>
-            <bottom><![CDATA[<i>Copyright &#169; 2003 Eric Glass</i>]]></bottom>
+            <sourcepath path="src/java"/>
         </javadoc>
     </target>
 
     <target name="all" depends="war,javadoc"/>
 
     <target name="clean">
-        <delete dir="${build}"/>
+        <delete quiet="true" includeEmptyDirs="true" dir="${build}"/>
     </target>
 
     <target name="allclean" depends="clean">
-        <basename property="distribution" file="."/>
-        <delete file="${distribution}.zip"/>
-        <delete file="${distribution}.zip.MD5"/>
-        <delete file="${distribution}.tgz"/>
-        <delete file="${distribution}.tgz.MD5"/>
-        <delete file="${distribution}-war.zip"/>
-        <delete file="${distribution}-war.zip.MD5"/>
-        <delete file="${distribution}-war.tgz"/>
-        <delete file="${distribution}-war.tgz.MD5"/>
-        <delete file="${distribution}-src.zip"/>
-        <delete file="${distribution}-src.zip.MD5"/>
-        <delete file="${distribution}-src.tgz"/>
-        <delete file="${distribution}-src.tgz.MD5"/>
-        <delete file="davenport.jar"/>
-        <delete file="davenport.war"/>
-        <delete includeEmptyDirs="true">
+        <delete quiet="true">
+            <fileset dir=".">
+                <include name="${distribution}.zip"/>
+                <include name="${distribution}.zip.MD5"/>
+                <include name="${distribution}.tgz"/>
+                <include name="${distribution}.tgz.MD5"/>
+                <include name="davenport.jar"/>
+                <include name="davenport.war"/>
+            </fileset>
+        </delete>
+        <delete quiet="true" includeEmptyDirs="true">
             <fileset dir="doc/api">
                 <exclude name="overview.html"/>
                 <exclude name="stylesheet.css"/>
@@ -177,89 +188,31 @@ dependencies: Checks that all class dependencies are met.
     <target name="davenport" depends="all,clean"/>
 
     <target name="distrib" depends="davenport">
-        <basename property="distribution" file="."/>
-        <zip destfile="${distribution}.zip">
-            <fileset dir="..">
-                <include name="${distribution}/**"/>
-                <exclude name="${distribution}/${distribution}.zip"/>
-                <exclude name="${distribution}/${distribution}.zip.MD5"/>
-                <exclude name="${distribution}/${distribution}.tgz"/>
-                <exclude name="${distribution}/${distribution}.tgz.MD5"/>
-                <exclude name="${distribution}/${distribution}-war.zip"/>
-                <exclude name="${distribution}/${distribution}-war.zip.MD5"/>
-                <exclude name="${distribution}/${distribution}-war.tgz"/>
-                <exclude name="${distribution}/${distribution}-war.tgz.MD5"/>
-                <exclude name="${distribution}/${distribution}-src.zip"/>
-                <exclude name="${distribution}/${distribution}-src.zip.MD5"/>
-                <exclude name="${distribution}/${distribution}-src.tgz"/>
-                <exclude name="${distribution}/${distribution}-src.tgz.MD5"/>
-            </fileset>
+        <zip zipfile="${distribution}.zip">
+            <zipfileset prefix="${distribution}" dir=".">
+                <include name="**"/>
+                <exclude name="${distribution}.zip"/>
+                <exclude name="${distribution}.zip.MD5"/>
+                <exclude name="${distribution}.tgz"/>
+                <exclude name="${distribution}.tgz.MD5"/>
+            </zipfileset>
         </zip>
+        <delete quiet="true" includeEmptyDirs="true" dir="distrib-tmp"/>
+        <mkdir dir="distrib-tmp"/>
+        <unzip src="${distribution}.zip" dest="distrib-tmp"/>
+        <tar tarfile="${distribution}.tar" basedir="distrib-tmp"/>
+        <delete quiet="true" includeEmptyDirs="true" dir="distrib-tmp"/>
+        <gzip src="${distribution}.tar" zipfile="${distribution}.tgz"/>
+        <delete quiet="true" includeEmptyDirs="true">
+            <fileset dir=".">
+                <include name="${distribution}.tar"/>
+            </fileset>
+        </delete>
+    </target>
+
+    <target name="checksum">
         <checksum file="${distribution}.zip"/>
-        <tar compression="gzip" destfile="${distribution}.tgz">
-            <tarfileset dir="..">
-                <include name="${distribution}/**"/>
-                <exclude name="${distribution}/${distribution}.zip"/>
-                <exclude name="${distribution}/${distribution}.zip.MD5"/>
-                <exclude name="${distribution}/${distribution}.tgz"/>
-                <exclude name="${distribution}/${distribution}.tgz.MD5"/>
-                <exclude name="${distribution}/${distribution}-war.zip"/>
-                <exclude name="${distribution}/${distribution}-war.zip.MD5"/>
-                <exclude name="${distribution}/${distribution}-war.tgz"/>
-                <exclude name="${distribution}/${distribution}-war.tgz.MD5"/>
-                <exclude name="${distribution}/${distribution}-src.zip"/>
-                <exclude name="${distribution}/${distribution}-src.zip.MD5"/>
-                <exclude name="${distribution}/${distribution}-src.tgz"/>
-                <exclude name="${distribution}/${distribution}-src.tgz.MD5"/>
-            </tarfileset>
-        </tar>
         <checksum file="${distribution}.tgz"/>
-        <zip destfile="${distribution}-war.zip">
-            <fileset dir="..">
-                <include name="${distribution}/davenport.war"/>
-                <include name="${distribution}/license.txt"/>
-                <include name="${distribution}/README.txt"/>
-            </fileset>
-        </zip>
-        <checksum file="${distribution}-war.zip"/>
-        <tar compression="gzip" destfile="${distribution}-war.tgz">
-            <tarfileset dir="..">
-                <include name="${distribution}/davenport.war"/>
-                <include name="${distribution}/license.txt"/>
-                <include name="${distribution}/README.txt"/>
-            </tarfileset>
-        </tar>
-        <checksum file="${distribution}-war.tgz"/>
-        <zip destfile="${distribution}-src.zip">
-            <fileset dir="..">
-                <include name="${distribution}/build.xml"/>
-                <include name="${distribution}/license.txt"/>
-                <include name="${distribution}/README.txt"/>
-                <include name="${distribution}/src/**"/>
-                <include name="${distribution}/doc/**"/>
-                <exclude name="${distribution}/doc/api/**"/>
-            </fileset>
-            <fileset dir="..">
-                <include name="${distribution}/doc/api/overview.html"/>
-                <include name="${distribution}/doc/api/stylesheet.css"/>
-            </fileset>
-        </zip>
-        <checksum file="${distribution}-src.zip"/>
-        <tar compression="gzip" destfile="${distribution}-src.tgz">
-            <tarfileset dir="..">
-                <include name="${distribution}/build.xml"/>
-                <include name="${distribution}/license.txt"/>
-                <include name="${distribution}/README.txt"/>
-                <include name="${distribution}/src/**"/>
-                <include name="${distribution}/doc/**"/>
-                <exclude name="${distribution}/doc/api/**"/>
-            </tarfileset>
-            <tarfileset dir="..">
-                <include name="${distribution}/doc/api/overview.html"/>
-                <include name="${distribution}/doc/api/stylesheet.css"/>
-            </tarfileset>
-        </tar>
-        <checksum file="${distribution}-src.tgz"/>
     </target>
 
 </project>

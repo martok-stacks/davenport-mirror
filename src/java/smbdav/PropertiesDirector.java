@@ -237,9 +237,9 @@ public class PropertiesDirector {
         int count = chars.length;
         for (int i = 0; i < chars.length; i++) {
             if (chars[i] > 0x7f || ESCAPED[chars[i]]) {
-                buffer.append("%");
-                byte[] bytes = Character.toString(chars[i]).getBytes("UTF-8");
+                byte[] bytes = new String(chars, i, 1).getBytes("UTF-8");
                 for (int j = 0; j < bytes.length; j++) {
+                    buffer.append("%");
                     buffer.append(Integer.toHexString((bytes[j] >> 4) & 0x0f));
                     buffer.append(Integer.toHexString(bytes[j] & 0x0f));
                 }

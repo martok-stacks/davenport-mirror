@@ -36,7 +36,8 @@ import smbdav.AbstractProperty;
  */
 public class GetContentLengthProperty extends AbstractProperty {
 
-    public int retrieve(SmbFile file, Element element) throws IOException {
+    public int retrieve(SmbFile file, Element element)
+            throws IOException {
         element.setAttributeNS(WEB_FOLDERS_NAMESPACE, "w:dt", "int");
         element.appendChild(element.getOwnerDocument().createTextNode(
                 String.valueOf(file.length())));

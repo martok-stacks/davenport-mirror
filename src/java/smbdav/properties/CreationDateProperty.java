@@ -38,7 +38,8 @@ import smbdav.SmbDAVUtilities;
  */
 public class CreationDateProperty extends AbstractProperty {
 
-    public int retrieve(SmbFile file, Element element) throws IOException {
+    public int retrieve(SmbFile file, Element element)
+            throws IOException {
         element.setAttributeNS(WEB_FOLDERS_NAMESPACE, "w:dt", "dateTime.tz");
         element.appendChild(element.getOwnerDocument().createTextNode(
                 SmbDAVUtilities.formatCreationDate(file.lastModified())));

@@ -37,7 +37,8 @@ import smbdav.AbstractProperty;
  */
 public class ResourceTypeProperty extends AbstractProperty {
 
-    public int retrieve(SmbFile file, Element element) throws IOException {
+    public int retrieve(SmbFile file, Element element)
+            throws IOException {
         if (!file.isFile()) {
             String namespace = element.getNamespaceURI();
             if (namespace != null) {

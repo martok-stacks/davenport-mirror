@@ -126,7 +126,8 @@ public abstract class AbstractProperty implements Property {
      * @throws IOException If an IO error occurs while updating the
      * property value.
      */
-    public int update(SmbFile file, Element element) throws IOException {
+    public int update(SmbFile file, Element element)
+            throws IOException {
         return HttpServletResponse.SC_CONFLICT;
     }
 

@@ -36,7 +36,8 @@ import smbdav.AbstractProperty;
  */
 public class DisplayNameProperty extends AbstractProperty {
 
-    public int retrieve(SmbFile file, Element element) throws IOException {
+    public int retrieve(SmbFile file, Element element)
+            throws IOException {
         element.appendChild(element.getOwnerDocument().createTextNode(
                 file.getName()));
         return HttpServletResponse.SC_OK;
