@@ -251,7 +251,7 @@ Available Build Targets:
                 <include name="${distribution}-src.tgz"/>
                 <include name="${distribution}.tgz"/>
                 <include name="${distribution}.zip"/>
-                <include name="${distribution}-${release}.rpm"/>
+                <include name="${distribution}-${release}.noarch.rpm"/>
                 <include name="${distribution}-${release}.spec"/>
                 <include name="${distribution}.MD5"/>
                 <include name="davenport.jar"/>
@@ -394,7 +394,7 @@ Available Build Targets:
             <param name="file" value="${distribution}.zip"/>
         </antcall>
         <antcall target="appendChecksum">
-            <param name="file" value="${distribution}-${release}.rpm"/>
+            <param name="file" value="${distribution}-${release}.noarch.rpm"/>
         </antcall>
     </target>
 
