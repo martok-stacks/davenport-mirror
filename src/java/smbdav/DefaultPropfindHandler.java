@@ -1,6 +1,6 @@
 /* Davenport WebDAV SMB Gateway
  * Copyright (C) 2003  Eric Glass
- * Copyright (C) 2003  Ronald Tschalär
+ * Copyright (C) 2003  Ronald Tschalï¿½r
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -110,6 +110,14 @@ public class DefaultPropfindHandler extends AbstractHandler {
         SmbFile file = getSmbFile(request, auth);
         if (!file.exists()) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        if (file.getName().endsWith("/") &&
+                !request.getRequestURL().toString().endsWith("/")) {
+            StringBuffer redirect = request.getRequestURL().append("/");
+            String query = request.getQueryString();
+            if (query != null) redirect.append("?").append(query);
+            response.sendRedirect(redirect.toString());
             return;
         }
         PropertiesDirector director = new PropertiesDirector(

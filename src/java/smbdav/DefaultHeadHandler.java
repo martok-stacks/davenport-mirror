@@ -61,10 +61,21 @@ public class DefaultHeadHandler extends AbstractHandler {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
+        if (file.getName().endsWith("/") &&
+                !request.getRequestURL().toString().endsWith("/")) {
+            StringBuffer redirect = request.getRequestURL().append("/");
+            String query = request.getQueryString();
+            if (query != null) redirect.append("?").append(query);
+            response.sendRedirect(redirect.toString());
+            return;
+        }
         String etag = SmbDAVUtilities.getETag(file);
         if (etag != null) response.setHeader("ETag", etag);
-        response.setHeader("Last-Modified",
-                SmbDAVUtilities.formatGetLastModified(file.lastModified()));
+        long modified = file.lastModified();
+        if (modified != 0) {
+            response.setHeader("Last-Modified",
+                    SmbDAVUtilities.formatGetLastModified(modified));
+        }
         int result = checkConditionalRequest(request, file);
         if (result != HttpServletResponse.SC_OK) {
             response.setStatus(result);

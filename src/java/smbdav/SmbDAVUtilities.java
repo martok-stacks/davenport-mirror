@@ -130,7 +130,7 @@ public class SmbDAVUtilities {
     public static String getETag(SmbFile file) {
         if (file == null) return null;
         try {
-            if (!file.exists()) return null;
+            if (!file.isFile()) return null;
             String key = file.toString() + ":" +
                     Long.toHexString(file.lastModified());
             byte[] hashBytes = null;

@@ -6,6 +6,43 @@ Davenport and its source code can be obtained freely from:
     http://davenport.sourceforge.net
 
 --------------------------------------------------------------------------------
+Version 0.9.7: February 10, 2004
+
+SUMMARY OF CHANGES:
+    Fixed a bug involving redirects for directories not ending in "/".
+    Fixed various bugs involving incorrect WebDAV properties.
+    Added additional localization support.
+
+
+CHANGE:
+    Fixed a bug involving redirects for directories not ending in "/".
+DETAILS:
+    Davenport should redirect requests for collections not ending in "/" to
+    the "/"-terminated location.  This was previously only being done for
+    GET requests.
+RESOLUTION:
+    Davenport now redirects requests via GET, HEAD, OPTIONS, and PROPFIND.
+
+
+CHANGE:
+    Fixed various bugs involving incorrect WebDAV properties.
+DETAILS:
+    There were various cases in which Davenport presented WebDAV properties
+    containing invalid values.  These have been removed.
+RESOLUTION:
+    Excluded the "creationdate" and "getlastmodified" properties for
+    resources on which these values do not exist.
+    Excluded the "getcontentlength" property for collections.
+    Excluded collections from ETag generation.
+
+
+CHANGE:
+    Added additional localization support.
+DETAILS:
+    Directory stylesheets and the configuration page can now use a
+    mechanism similar to resource bundles to support localization.
+
+--------------------------------------------------------------------------------
 Version 0.9.6: February 9, 2004
 
 SUMMARY OF CHANGES:

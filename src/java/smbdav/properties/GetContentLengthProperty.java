@@ -24,6 +24,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import jcifs.smb.SmbFile;
 
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import smbdav.AbstractProperty;
@@ -36,8 +37,14 @@ import smbdav.AbstractProperty;
  */
 public class GetContentLengthProperty extends AbstractProperty {
 
+    public Element createElement(Document document, SmbFile file)
+            throws IOException {
+        return file.isDirectory() ? null : super.createElement(document, file);
+    }
+
     public int retrieve(SmbFile file, Element element)
             throws IOException {
+        if (file.isDirectory()) return HttpServletResponse.SC_NOT_FOUND;
         element.setAttributeNS(WEB_FOLDERS_NAMESPACE, "w:dt", "int");
         element.appendChild(element.getOwnerDocument().createTextNode(
                 String.valueOf(file.length())));

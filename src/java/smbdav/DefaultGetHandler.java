@@ -1,6 +1,6 @@
 /* Davenport WebDAV SMB Gateway
  * Copyright (C) 2003  Eric Glass
- * Copyright (C) 2003  Ronald Tschalär
+ * Copyright (C) 2003  Ronald Tschalï¿½r
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,11 +26,14 @@ import java.io.OutputStream;
 
 import java.net.URL;
 
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
-import javax.servlet.UnavailableException;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -120,57 +123,58 @@ import org.w3c.dom.Document;
  * which will load and cache a default configuration page from the
  * Davenport jarfile.
  * <p>
+ * Both the stylesheet and configuration page will attempt to load a resource
+ * appropriate to the locale; the loading order is similar to that used by
+ * resource bundles, i.e.:
+ * <p>
+ * directory_en_US.xsl
+ * <br> 
+ * directory_en.xsl
+ * <br> 
+ * directory.xsl
+ * <p>
+ * The client's locale will be tried first, followed by the server's locale. 
  * 
  * @author Eric Glass
  */
 public class DefaultGetHandler extends AbstractHandler {
 
-    private Templates defaultTemplates;
+    private final Map defaultTemplates = new HashMap();
+
+    private final Map configurations = new HashMap();
+
+    private String stylesheetLocation;
+
+    private String configurationLocation;
 
     private PropertiesBuilder propertiesBuilder;
-
-    private byte[] configuration;
 
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
         propertiesBuilder = new DefaultPropertiesBuilder();
         propertiesBuilder.init(config);
-        try {
-            String stylesheet = config.getInitParameter("directory.xsl");
-            if (stylesheet == null) stylesheet = "/META-INF/directory.xsl";
-            Source source = getStylesheet(stylesheet, true);
-            defaultTemplates = TransformerFactory.newInstance().newTemplates(
-                    source);
-        } catch (Exception ex) {
-            throw new UnavailableException(SmbDAVUtilities.getResource(
-                    DefaultGetHandler.class, "stylesheetError", null, null));
+        stylesheetLocation = getServletConfig().getInitParameter(
+                "directory.xsl");
+        if (stylesheetLocation == null) {
+            stylesheetLocation = "/META-INF/directory.xsl";
         }
-        String configuration =
+        configurationLocation =
                 config.getInitParameter("directory.configuration");
-        if (configuration == null) {
-            configuration = "/META-INF/configuration.html";
-        }
-        InputStream stream = getResourceAsStream(configuration);
-        try {
-            if (stream == null) stream = new URL(configuration).openStream();
-            ByteArrayOutputStream collector = new ByteArrayOutputStream();
-            byte[] buffer = new byte[2048];
-            int count;
-            while ((count = stream.read(buffer, 0, 2048)) != -1) {
-                collector.write(buffer, 0, count);
-            }
-            this.configuration = collector.toByteArray();
-        } catch (Exception ex) {
-            throw new UnavailableException(SmbDAVUtilities.getResource(
-                    DefaultGetHandler.class, "configurationPageError",
-                            null, null));
+        if (configurationLocation == null) {
+            configurationLocation = "/META-INF/configuration.html";
         }
     }
 
     public void destroy() {
         propertiesBuilder.destroy();
         propertiesBuilder = null;
-        defaultTemplates = null;
+        stylesheetLocation = null;
+        synchronized (defaultTemplates) {
+            defaultTemplates.clear();
+        }
+        synchronized (configurations) {
+            configurations.clear();
+        }
         super.destroy();
     }
 
@@ -245,7 +249,8 @@ public class DefaultGetHandler extends AbstractHandler {
                 }
                 response.addCookie(cookie);
             }
-            Templates templates = defaultTemplates;
+            Locale locale = request.getLocale();
+            Templates templates = getDefaultTemplates(locale);
             if (view != null) {
                 templates = null;
                 try {
@@ -255,7 +260,7 @@ public class DefaultGetHandler extends AbstractHandler {
                                 session.getAttribute("davenport.templates");
                     }
                     if (templates == null) {
-                        Source source = getStylesheet(view, false);
+                        Source source = getStylesheet(view, false, locale);
                         templates = TransformerFactory.newInstance(
                                 ).newTemplates(source);
                         if (session != null) {
@@ -332,8 +337,11 @@ public class DefaultGetHandler extends AbstractHandler {
         }
         String etag = SmbDAVUtilities.getETag(file);
         if (etag != null) response.setHeader("ETag", etag);
-        response.setHeader("Last-Modified",
-                SmbDAVUtilities.formatGetLastModified(file.lastModified()));
+        long modified = file.lastModified();
+        if (modified != 0) {
+            response.setHeader("Last-Modified",
+                    SmbDAVUtilities.formatGetLastModified(modified));
+        }
         int result = checkConditionalRequest(request, file);
         if (result != HttpServletResponse.SC_OK) {
             response.setStatus(result);
@@ -372,8 +380,93 @@ public class DefaultGetHandler extends AbstractHandler {
             HttpServletResponse response) throws ServletException, IOException {
         response.setContentType("text/html");
         OutputStream output = response.getOutputStream();
-        output.write(configuration);
+        output.write(getConfiguration(request.getLocale()));
         response.flushBuffer();
+    }
+
+    private byte[] getConfiguration(Locale locale)
+            throws ServletException, IOException {
+        synchronized (configurations) {
+            byte[] configuration = (byte[]) configurations.get(locale);
+            if (configuration != null) return configuration;
+            InputStream stream = getResourceAsStream(configurationLocation,
+                    locale);
+            if (stream == null) {
+                throw new ServletException(SmbDAVUtilities.getResource(
+                        DefaultGetHandler.class, "configurationPageError",
+                                null, null));
+            }
+            ByteArrayOutputStream collector = new ByteArrayOutputStream();
+            byte[] buffer = new byte[2048];
+            int count;
+            while ((count = stream.read(buffer, 0, 2048)) != -1) {
+                collector.write(buffer, 0, count);
+            }
+            configuration = collector.toByteArray();
+            configurations.put(locale, configuration);
+            return configuration;
+        }
+    }
+
+    private Templates getDefaultTemplates(Locale locale)
+            throws ServletException, IOException {
+        synchronized (defaultTemplates) {
+            Templates templates = (Templates) defaultTemplates.get(locale);
+            if (templates != null) return templates;
+            try {
+                Source source = getStylesheet(stylesheetLocation, true, locale);
+                templates = TransformerFactory.newInstance().newTemplates(
+                        source);
+                defaultTemplates.put(locale, templates);
+                return templates;
+            } catch (Exception ex) {
+                throw new ServletException(SmbDAVUtilities.getResource(
+                        DefaultGetHandler.class, "stylesheetError", null,
+                                null));
+            }
+        }
+    }
+
+    private InputStream getResourceAsStream(String location, Locale locale) {
+        int index = location.indexOf('.');
+        String prefix = (index != -1) ? location.substring(0, index) :
+                location;
+        String suffix = (index != -1) ? location.substring(index) : "";
+        String language = locale.getLanguage();
+        String country = locale.getCountry();
+        String variant = locale.getVariant();
+        InputStream stream = null;
+        if (!variant.equals("")) {
+            stream = getResourceAsStream(prefix + '_' + language + '_' +
+                    country + '_' + variant + suffix);
+            if (stream != null) return stream;
+        }
+        if (!country.equals("")) {
+            stream = getResourceAsStream(prefix + '_' + language + '_' +
+                    country + suffix);
+            if (stream != null) return stream;
+        }
+        stream = getResourceAsStream(prefix + '_' + language + suffix);
+        if (stream != null) return stream;
+        Locale secondary = Locale.getDefault();
+        if (!locale.equals(secondary)) {
+            language = secondary.getLanguage();
+            country = secondary.getCountry();
+            variant = secondary.getVariant();
+            if (!variant.equals("")) {
+                stream = getResourceAsStream(prefix + '_' + language + '_' +
+                        country + '_' + variant + suffix);
+                if (stream != null) return stream;
+            }
+            if (!country.equals("")) {
+                stream = getResourceAsStream(prefix + '_' + language + '_' +
+                        country + suffix);
+                if (stream != null) return stream;
+            }
+            stream = getResourceAsStream(prefix + '_' + language + suffix);
+            if (stream != null) return stream;
+        }
+        return getResourceAsStream(location);
     }
 
     private InputStream getResourceAsStream(String location) {
@@ -401,9 +494,9 @@ public class DefaultGetHandler extends AbstractHandler {
         return null;
     }
 
-    private Source getStylesheet(String location, boolean allowExternal)
-            throws Exception {
-        InputStream stream = getResourceAsStream(location);
+    private Source getStylesheet(String location, boolean allowExternal,
+            Locale locale) throws Exception {
+        InputStream stream = getResourceAsStream(location, locale);
         if (stream != null) return new StreamSource(stream);
         if (!allowExternal) {
             throw new IllegalArgumentException(SmbDAVUtilities.getResource(
