@@ -36,6 +36,7 @@ import javax.servlet.http.HttpServletResponse;
 import jcifs.smb.NtlmPasswordAuthentication;
 import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
+import jcifs.smb.SmbFileFilter;
 
 /**
  * An abstract implementation of the <code>MethodHandler</code> interface.
@@ -52,8 +53,6 @@ public abstract class AbstractHandler implements MethodHandler {
 
     private ServletConfig config;
 
-    private String requestUriCharset;
-
     /**
      * Initializes the method handler.  This implementation stores the
      * provided <code>ServletConfig</code> object and makes it available
@@ -68,8 +67,6 @@ public abstract class AbstractHandler implements MethodHandler {
      */
     public void init(ServletConfig config) throws ServletException {
         this.config = config;
-        requestUriCharset = config.getInitParameter("request-uri.charset");
-        if (requestUriCharset == null) requestUriCharset = "ISO-8859-1";
     }
 
     public void destroy() {
@@ -94,7 +91,49 @@ public abstract class AbstractHandler implements MethodHandler {
      * @return A <code>String</code> containing the charset name.
      */
     protected String getRequestURICharset() {
-        return requestUriCharset;
+        ServletConfig config = getServletConfig();
+        String charset = (config == null) ? null : (String)
+                config.getServletContext().getAttribute(
+                        Davenport.REQUEST_URI_CHARSET);
+        return (charset != null) ? charset : "ISO-8859-1";
+    }
+
+    /**
+     * Rewrites the supplied HTTP URL against the active context base if
+     * necessary.
+     *
+     * @param request The request being serviced.
+     * @param url The HTTP URL to process for rewriting.
+     * @return A <code>String</code> containing the rewritten URL.  If
+     * no rewriting is required, the provided URL will be returned.
+     */
+    protected String rewriteURL(HttpServletRequest request, String url) {
+        String contextBase = (String)
+                request.getAttribute(Davenport.CONTEXT_BASE);
+        if (contextBase == null || url.startsWith(contextBase)) return url;
+        String base = request.getContextPath() + request.getServletPath();
+        int index = url.indexOf(base);
+        if (index == -1) return url;
+        Log.log(Log.INFORMATION,
+                "Rewriting URL \"{0}\" against context base \"{1}\".",
+                        new Object[] { url, contextBase });
+        url = url.substring(index);
+        if (!contextBase.endsWith("/")) contextBase += "/";
+        if (url.startsWith("/")) url = url.substring(1);
+        url = contextBase + url;
+        Log.log(Log.INFORMATION, "Rewrote URL to \"{0}\".", url);
+        return url;
+    }
+
+    /**
+     * Convenience method to return the HTTP URL from the request, rewritten
+     * against the active context base as necessary.
+     *
+     * @param request The request being serviced.
+     * @return A <code>String</code> containing the rewritten request URL.
+     */ 
+    protected String getRequestURL(HttpServletRequest request) {
+        return rewriteURL(request, request.getRequestURL().toString());
     }
 
     /**
@@ -147,24 +186,48 @@ public abstract class AbstractHandler implements MethodHandler {
      */
     protected String getSmbURL(HttpServletRequest request, String httpUrl,
             String charset) throws IOException {
+        Log.log(Log.DEBUG, "Converting \"{0}\" to an SMB URL " +
+                "using charset \"{1}\".", new Object[] { httpUrl, charset });
         if (httpUrl == null) return null;
+        httpUrl = rewriteURL(request, httpUrl);
         String base = request.getContextPath() + request.getServletPath();
         int index = httpUrl.indexOf(base);
-        if (index == -1) return null;
+        if (index == -1) {
+            Log.log(Log.DEBUG, "Specified URL is not under this context.");
+            return null;
+        }
         index += base.length();
         httpUrl = (index < httpUrl.length()) ?
                 httpUrl.substring(index) : "/";
         SmbFile file = new SmbFile("smb:/" + unescape(httpUrl, charset));
         String server = file.getServer();
         base = file.getCanonicalPath();
-        if (KNOWN_WORKGROUPS.contains(server)) {
-            StringBuffer smb = new StringBuffer(base);
-            smb.delete(0, server.length() + 6); // remove "smb://" + workgroup
-            if (smb.length() > 1) {
-                base = smb.insert(0, "smb:/").toString();
+        if (server != null && KNOWN_WORKGROUPS.contains(server.toUpperCase())) {
+            Log.log(Log.DEBUG, "Target \"{0}\" is a known workgroup.", server);
+            index = base.indexOf(server);
+            int end = index + server.length();
+            if (end < base.length() && base.charAt(end) == '/') end++;
+            if (end < base.length()) {
+                base = new StringBuffer(base).delete(index, end).toString();
             }
         }
+        Log.log(Log.DEBUG, "Converted to SMB URL \"{0}\".", base);
         return base;
+    }
+
+    /**
+     * Returns the <code>SmbFileFilter</code> used to filter resource
+     * requests.  The default implementation uses the global filter
+     * installed by the Davenport servlet (if applicable).
+     *
+     * @return The filter to be applied to requested resources.  Returns
+     * <code>null</code> if no filter is to be applied.
+     */ 
+    protected SmbFileFilter getFilter() {
+        ServletConfig config = getServletConfig();
+        return (config == null) ? null : (SmbFileFilter)
+                config.getServletContext().getAttribute(
+                        Davenport.RESOURCE_FILTER);
     }
 
     /**
@@ -182,7 +245,7 @@ public abstract class AbstractHandler implements MethodHandler {
      */
     protected SmbFile getSmbFile(HttpServletRequest request,
             NtlmPasswordAuthentication auth) throws IOException {
-        String url = request.getRequestURL().toString();
+        String url = getRequestURL(request);
         SmbFile file = null;
         IOException exception = null;
         boolean exists = false;
@@ -195,7 +258,10 @@ public abstract class AbstractHandler implements MethodHandler {
         }
         if (exists) return file;
         if (charset.equals("UTF-8")) {
-            if (exception != null) throw exception;
+            if (exception != null) {
+                Log.log(Log.DEBUG, exception);
+                throw exception;
+            }
             return file;
         }
         SmbFile utf8 = null;
@@ -208,14 +274,24 @@ public abstract class AbstractHandler implements MethodHandler {
         }
         if (exists) return utf8;
         if (file != null) {
-            if (exception != null) throw exception;
+            if (exception != null) {
+                Log.log(Log.DEBUG, exception);
+                throw exception;
+            }
             return file;
         }
         if (utf8 != null) {
-            if (utf8Exception != null) throw utf8Exception;
+            if (utf8Exception != null) {
+                Log.log(Log.DEBUG, exception);
+                throw utf8Exception;
+            }
             return utf8;
         }
-        if (exception != null) throw exception;
+        if (exception != null) {
+            Log.log(Log.DEBUG, exception);
+            throw exception;
+        }
+        Log.log(Log.WARNING, "Returning null SmbFile (shouldn't happen).");
         return null;
     }
 
@@ -236,6 +312,9 @@ public abstract class AbstractHandler implements MethodHandler {
     protected SmbFile createSmbFile(String smbUrl,
             NtlmPasswordAuthentication authentication) throws IOException {
         try {
+            Log.log(Log.DEBUG,
+                    "Creating SMB file for \"{0}\" with credentials \"{1}\".",
+                            new Object[] { smbUrl, authentication });
             SmbFile smbFile = (authentication != null) ?
                     new SmbFile(smbUrl, authentication) : new SmbFile(smbUrl);
             if (!smbUrl.endsWith("/") && needsSeparator(smbFile)) {
@@ -246,15 +325,29 @@ public abstract class AbstractHandler implements MethodHandler {
             }
             if (smbFile.getType() == SmbFile.TYPE_WORKGROUP) {
                 String server = smbFile.getServer();
-                if (server != null) KNOWN_WORKGROUPS.add(smbFile.getServer());
+                if (server != null) {
+                    Log.log(Log.INFORMATION,
+                            "Adding \"{0}\" to the set of known workgroups.",
+                                    server);
+                    KNOWN_WORKGROUPS.add(server.toUpperCase());
+                }
             }
+            SmbFileFilter filter = getFilter();
+            if (filter != null && !filter.accept(smbFile)) {
+                Log.log(Log.INFORMATION, "Filter blocked access to \"{0}\".",
+                        smbFile);
+                smbFile = new BlockedFile(smbFile);
+            }
+            Log.log(Log.DEBUG, "Created SMB file \"{0}\".", smbFile);
             return smbFile;
         } catch (SmbException ex) {
+            Log.log(Log.DEBUG, ex);
             throw ex;
         } catch (Exception ex) {
-            throw new IOException(SmbDAVUtilities.getResource(
-                    AbstractHandler.class, "cantCreateSmbFile",
-                            new Object[] { ex }, null));
+            String message = SmbDAVUtilities.getResource(AbstractHandler.class,
+                    "cantCreateSmbFile", new Object[] { ex }, null);
+            Log.log(Log.DEBUG, message + "\n{0}", ex);
+            throw new IOException(message);
         }
     }
 
@@ -296,6 +389,8 @@ public abstract class AbstractHandler implements MethodHandler {
                     long timestamp = request.getDateHeader("If-Modified-Since");
                     if (timestamp == -1 ||
                             timestamp >= (file.lastModified() / 1000 * 1000)) {
+                        Log.log(Log.INFORMATION,
+                                "Resource has not been modified.");
                         return HttpServletResponse.SC_NOT_MODIFIED;
                     }
                 }
@@ -305,6 +400,7 @@ public abstract class AbstractHandler implements MethodHandler {
             if (values.hasMoreElements()) {
                 String etag = SmbDAVUtilities.getETag(file);
                 if (etag == null) {
+                    Log.log(Log.INFORMATION, "Precondition failed.");
                     return HttpServletResponse.SC_PRECONDITION_FAILED;
                 }
                 boolean match = false;
@@ -312,17 +408,22 @@ public abstract class AbstractHandler implements MethodHandler {
                     String value = (String) values.nextElement();
                     if ("*".equals(value) || etag.equals(value)) match = true;
                 } while (!match && values.hasMoreElements());
-                if (!match) return HttpServletResponse.SC_PRECONDITION_FAILED;
+                if (!match) {
+                    Log.log(Log.INFORMATION, "Precondition failed.");
+                    return HttpServletResponse.SC_PRECONDITION_FAILED;
+                }
             }
             long timestamp = request.getDateHeader("If-Unmodified-Since");
             if (timestamp != -1) {
                 if ((file.lastModified() / 1000 * 1000) > timestamp) {
+                    Log.log(Log.INFORMATION, "Precondition failed.");
                     return HttpServletResponse.SC_PRECONDITION_FAILED;
                 }
             } else {
                 timestamp = request.getDateHeader("If-Modified-Since");
                 if (timestamp != -1 &&
                         timestamp >= (file.lastModified() / 1000 * 1000)) {
+                    Log.log(Log.INFORMATION, "Resource has not been modified.");
                     return HttpServletResponse.SC_NOT_MODIFIED;
                 }
             }

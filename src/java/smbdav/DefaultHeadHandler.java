@@ -43,9 +43,6 @@ public class DefaultHeadHandler extends AbstractHandler {
      * <br>
      * If the specified file does not exist, a 404 (Not Found) error is
      * sent to the client.
-     * <br>
-     * If the user does not have sufficient privileges to perform the
-     * operation, a 401 (Unauthorized) error is sent to the client.
      *
      * @param request The request being serviced.
      * @param response The servlet response.
@@ -61,9 +58,9 @@ public class DefaultHeadHandler extends AbstractHandler {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-        if (file.getName().endsWith("/") &&
-                !request.getRequestURL().toString().endsWith("/")) {
-            StringBuffer redirect = request.getRequestURL().append("/");
+        String requestUrl = getRequestURL(request);
+        if (file.getName().endsWith("/") && !requestUrl.endsWith("/")) {
+            StringBuffer redirect = new StringBuffer(requestUrl).append("/");
             String query = request.getQueryString();
             if (query != null) redirect.append("?").append(query);
             response.sendRedirect(redirect.toString());

@@ -1,6 +1,6 @@
 /* Davenport WebDAV SMB Gateway
  * Copyright (C) 2003  Eric Glass
- * Copyright (C) 2003  Ronald Tschalï¿½r
+ * Copyright (C) 2003  Ronald Tschalär
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -52,7 +52,6 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
 import jcifs.smb.NtlmPasswordAuthentication;
-import jcifs.smb.SmbAuthException;
 import jcifs.smb.SmbFile;
 import jcifs.smb.SmbFileInputStream;
 
@@ -190,10 +189,6 @@ public class DefaultGetHandler extends AbstractHandler {
      * <br>
      * If the specified file does not exist, a 404 (Not Found) error is
      * sent to the client.
-     * <br>
-     * If the user does not have sufficient privileges to perform the
-     * operation, a 401 (Unauthorized) error is sent to the client.
-     * <br>
      *
      * @param request The request being serviced.
      * @param response The servlet response.
@@ -210,9 +205,9 @@ public class DefaultGetHandler extends AbstractHandler {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-        if (file.getName().endsWith("/") &&
-                !request.getRequestURL().toString().endsWith("/")) {
-            StringBuffer redirect = request.getRequestURL().append("/");
+        String requestUrl = getRequestURL(request);
+        if (file.getName().endsWith("/") && !requestUrl.endsWith("/")) {
+            StringBuffer redirect = new StringBuffer(requestUrl).append("/");
             String query = request.getQueryString();
             if (query != null) redirect.append("?").append(query);
             response.sendRedirect(redirect.toString());
@@ -278,22 +273,12 @@ public class DefaultGetHandler extends AbstractHandler {
                 }
             }
             PropertiesDirector director = new PropertiesDirector(
-                    getPropertiesBuilder());
-            String href = request.getRequestURL().toString();
+                    getPropertiesBuilder(), getFilter());
             Document properties = null;
-            try {
-                properties = director.getAllProperties(file, href, 1);
-            } catch (SmbAuthException ex) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-                        SmbDAVUtilities.getResource(DefaultGetHandler.class,
-                                "directoryAccessDenied",
-                                        new Object[] { file },
-                                                request.getLocale()));
-                return;
-            }
+            properties = director.getAllProperties(file, requestUrl, 1);
             try {
                 Transformer transformer = templates.newTransformer();
-                transformer.setParameter("href", href);
+                transformer.setParameter("href", requestUrl);
                 transformer.setParameter("url", file.toString());
                 transformer.setParameter("unc", file.getUncPath());
                 String type;

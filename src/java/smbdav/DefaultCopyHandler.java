@@ -26,7 +26,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import jcifs.smb.NtlmPasswordAuthentication;
-import jcifs.smb.SmbAuthException;
 import jcifs.smb.SmbFile;
 
 /**
@@ -54,9 +53,6 @@ public class DefaultCopyHandler extends AbstractHandler {
      * "Overwrite" request header with a value of "T", then the request
      * succeeds and the file is overwritten.  If the "Overwrite" header is
      * not provided, a 412 (Precondition Failed) error is sent to the client.
-     * <br>
-     * If the user does not have sufficient privileges to perform the copy
-     * operation, a 401 (Unauthorized) error is sent to the client.
      *
      * @param request The request being serviced.
      * @param response The servlet response.
@@ -95,16 +91,10 @@ public class DefaultCopyHandler extends AbstractHandler {
                 return;
             }
         }
-        try {
-            file.copyTo(destinationFile);
-            response.setStatus(overwritten ? HttpServletResponse.SC_NO_CONTENT :
-                    HttpServletResponse.SC_CREATED);
-            response.setContentLength(0);
-        } catch (SmbAuthException ex) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-                    SmbDAVUtilities.getResource(DefaultCopyHandler.class,
-                            "accessDenied", null, request.getLocale()));
-        }
+        file.copyTo(destinationFile);
+        response.setStatus(overwritten ? HttpServletResponse.SC_NO_CONTENT :
+                HttpServletResponse.SC_CREATED);
+        response.setContentLength(0);
     }
 
 }

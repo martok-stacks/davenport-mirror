@@ -19,22 +19,31 @@
 
 package smbdav;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 
 import java.net.UnknownHostException;
 
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.StringTokenizer;
 
 import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.UnavailableException;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import jcifs.Config;
 import jcifs.UniAddress;
@@ -42,11 +51,15 @@ import jcifs.UniAddress;
 import jcifs.http.NtlmSsp;
 
 import jcifs.smb.NtlmPasswordAuthentication;
+import jcifs.smb.NtStatus;
 import jcifs.smb.SmbAuthException;
+import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
+import jcifs.smb.SmbFileFilter;
 import jcifs.smb.SmbSession;
 
 import jcifs.util.Base64;
+import jcifs.util.Hexdump;
 
 /**
  * This servlet provides a WebDAV gateway to CIFS/SMB shared resources.
@@ -144,13 +157,41 @@ import jcifs.util.Base64;
  */
 public class Davenport extends HttpServlet {
 
+    /**
+     * The name of the servlet context attribute containing the
+     * <code>SmbFileFilter</code> applied to resource requests.
+     */
+    public static final String RESOURCE_FILTER = "davenport.resourceFilter";
+
+    /**
+     * The name of the servlet context attribute containing the charset used
+     * to interpret request URIs.
+     */
+    public static final String REQUEST_URI_CHARSET = "request-uri.charset";
+
+    /**
+     * The name of the request attribute containing the context base for
+     * URL rewriting.
+     */
+    public static final String CONTEXT_BASE = "davenport.contextBase";
+
     private final Map handlers = new HashMap();
 
+    private ErrorHandler[] errorHandlers;
+
+    private ResourceFilter filter;
+
     private UniAddress defaultServer;
+
+    private NtlmPasswordAuthentication anonymousCredentials;
 
     private String defaultDomain;
 
     private String realm;
+
+    private String contextBase;
+
+    private String contextBaseHeader;
 
     private boolean alwaysAuthenticate;
 
@@ -160,22 +201,59 @@ public class Davenport extends HttpServlet {
 
     private boolean enableNtlm;
 
+    private boolean closeOnAuthenticate;
+
     private boolean insecureBasic;
 
     public void init() throws ServletException {
         ServletConfig config = getServletConfig();
-        String alwaysAuthenticate =
-                config.getInitParameter("alwaysAuthenticate");
-        this.alwaysAuthenticate =
-                Boolean.valueOf(alwaysAuthenticate).booleanValue();
+        String logProvider = config.getInitParameter("smbdav.Log");
+        if (logProvider != null) {
+            try {
+                System.setProperty("smbdav.Log", logProvider);
+            } catch (Exception ignore) { }
+        }
+        String logThreshold = config.getInitParameter("smbdav.Log.threshold");
+        if (logThreshold != null) {
+            try {
+                System.setProperty("smbdav.Log.threshold", logThreshold);
+            } catch (Exception ignore) { }
+        }
+        Log.log(Log.DEBUG, "Logging initialized.");
+        if (Log.getThreshold() < Log.INFORMATION) {
+            Properties props = new Properties();
+            Enumeration params = config.getInitParameterNames();
+            while (params.hasMoreElements()) {
+                String paramName = (String) params.nextElement();
+                props.setProperty(paramName,
+                        config.getInitParameter(paramName));
+            }
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            props.list(new PrintStream(stream));
+            Log.log(Log.DEBUG, "Davenport init parameters: {0}", stream);
+        }
+        String requestUriCharset = config.getInitParameter(REQUEST_URI_CHARSET);
+        if (requestUriCharset == null) requestUriCharset = "ISO-8859-1";
+        contextBase = config.getInitParameter("contextBase");
+        contextBaseHeader = config.getInitParameter("contextBaseHeader");
+        config.getServletContext().setAttribute(REQUEST_URI_CHARSET,
+                requestUriCharset);
         Config.setProperty("jcifs.netbios.cachePolicy", "600");
-        Config.setProperty("jcifs.smb.client.attrExpirationPeriod", "120000");
+        Config.setProperty("jcifs.smb.client.soTimeout", "300000");
+        Config.setProperty("jcifs.smb.client.attrExpirationPeriod", "60000");
         Enumeration enumeration = config.getInitParameterNames();
         while (enumeration.hasMoreElements()) {
             String name = (String) enumeration.nextElement();
             if (name.startsWith("jcifs.")) {
                 Config.setProperty(name, config.getInitParameter(name));
             }
+        }
+        if (Log.getThreshold() < Log.INFORMATION) {
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            try {
+                Config.list(new PrintStream(stream));
+            } catch (Exception ignore) { }
+            Log.log(Log.DEBUG, "jCIFS Properties: {0}", stream);
         }
         String defaultDomain = Config.getProperty("jcifs.smb.client.domain");
         String defaultServer = Config.getProperty(
@@ -198,11 +276,41 @@ public class Davenport extends HttpServlet {
         String enableNtlm = config.getInitParameter("enableNtlm");
         this.enableNtlm = (enableNtlm == null) ||
                 Boolean.valueOf(enableNtlm).booleanValue();
+        String closeOnAuthenticate =
+                config.getInitParameter("closeOnAuthenticate");
+        this.closeOnAuthenticate =
+                Boolean.valueOf(closeOnAuthenticate).booleanValue();
         this.insecureBasic = Boolean.valueOf(
                 Config.getProperty("jcifs.http.insecureBasic")).booleanValue();
         realm = Config.getProperty("jcifs.http.basicRealm");
         if (realm == null) realm = "Davenport";
-        initHandlers(getServletConfig());
+        String alwaysAuthenticate =
+                config.getInitParameter("alwaysAuthenticate");
+        this.alwaysAuthenticate =
+                Boolean.valueOf(alwaysAuthenticate).booleanValue();
+        String anonymousCredentials =
+                config.getInitParameter("anonymousCredentials");
+        if (anonymousCredentials != null) {
+            int index = anonymousCredentials.indexOf(':');
+            String user = (index != -1) ?
+                    anonymousCredentials.substring(0, index) :
+                            anonymousCredentials;
+            String password = (index != -1) ?
+                    anonymousCredentials.substring(index + 1) : "";
+            String domain;
+            if ((index = user.indexOf('\\')) != -1 ||
+                    (index = user.indexOf('/')) != -1) {
+                domain = user.substring(0, index);
+                user = user.substring(index + 1);
+            } else {
+                domain = defaultDomain;
+            }
+            this.anonymousCredentials =
+                    new NtlmPasswordAuthentication(domain, user, password);
+        }
+        initFilter(config);
+        initHandlers(config);
+        initErrorHandlers(config);
     }
 
     public void destroy() {
@@ -212,6 +320,20 @@ public class Davenport extends HttpServlet {
                     iterator.next()).getValue()).destroy();
             iterator.remove();
         }
+        if (errorHandlers != null) {
+            for (int i = errorHandlers.length - 1; i >= 0; i--) {
+                errorHandlers[i].destroy();
+            }
+            errorHandlers = null;
+        }
+        if (filter != null) {
+            filter.destroy();
+            filter = null;
+        }
+        ServletContext context = getServletContext();
+        context.removeAttribute(RESOURCE_FILTER);
+        context.removeAttribute(REQUEST_URI_CHARSET);
+        Log.log(Log.DEBUG, "Davenport finished destroy.");
     }
 
     /**
@@ -223,17 +345,32 @@ public class Davenport extends HttpServlet {
      * @throws IOException If an IO error occurs while handling the request.
      * @throws ServletException If an application error occurs.
      */
-    protected void service (HttpServletRequest request,
+    protected void service(HttpServletRequest request,
             HttpServletResponse response) throws IOException, ServletException {
+        Log.log(Log.INFORMATION, "Received request for \"{0}\".",
+                request.getRequestURL());
+        String contextBase = this.contextBase;
+        if (contextBaseHeader != null) {
+            String dynamicBase = request.getHeader(contextBaseHeader);
+            if (dynamicBase != null) contextBase = dynamicBase;
+        }
+        if (contextBase != null) {
+            if (!contextBase.endsWith("/")) contextBase += "/";
+            request.setAttribute(CONTEXT_BASE, contextBase);
+            Log.log(Log.DEBUG, "Using context base: " + contextBase);
+        }
         boolean usingBasic = (acceptBasic || enableBasic) &&
                 (insecureBasic || request.isSecure());
+        Log.log(Log.DEBUG, "Using Basic? " + usingBasic);
         String pathInfo = request.getPathInfo();
         if (pathInfo == null || "".equals(pathInfo)) pathInfo = "/";
         String target = "smb:/" + pathInfo;
         UniAddress server = null;
         try {
             server = getServer(target);
+            Log.log(Log.DEBUG, "Target server is \"{0}\".", server);
         } catch (UnknownHostException ex) {
+            Log.log(Log.DEBUG, "Unknown server: {0}", ex);
             response.sendError(HttpServletResponse.SC_NOT_FOUND,
                     SmbDAVUtilities.getResource(Davenport.class,
                             "unknownServer", new Object[] { target },
@@ -242,73 +379,134 @@ public class Davenport extends HttpServlet {
         }
         NtlmPasswordAuthentication authentication = null;
         String authorization = request.getHeader("Authorization");
-        if (authorization != null &&
-                authorization.regionMatches(true, 0, "NTLM ", 0, 5)) {
-            byte[] challenge = SmbSession.getChallenge(server);
-            authentication = NtlmSsp.authenticate(request, response, challenge);
-            if (authentication == null) return;
-        } else if (authorization != null && usingBasic &&
-                authorization.regionMatches(true, 0, "Basic ", 0, 6)) {
-            String authInfo = new String(
-                    Base64.decode(authorization.substring(6)), "ISO-8859-1");
-            int index = authInfo.indexOf(':');
-            String user = (index != -1) ?
-                    authInfo.substring(0, authInfo.indexOf(':')) : authInfo;
-            String domain;
-            if (user.indexOf('\\') != -1) {
-                domain = user.substring(0, user.indexOf('\\'));
-                user = user.substring(user.indexOf('\\') + 1);
-            } else if (user.indexOf('/') != -1) {
-                domain = user.substring(0, user.indexOf('/'));
-                user = user.substring(user.indexOf('/') + 1);
+        Log.log(Log.DEBUG, "Authorization: " + authorization);
+        if (authorization != null && (authorization.regionMatches(true, 0,
+                "NTLM ", 0, 5) || (usingBasic && authorization.regionMatches(
+                        true, 0, "Basic ", 0, 6)))) {
+            if (authorization.regionMatches(true, 0, "NTLM ", 0, 5)) {
+                Log.log(Log.INFORMATION, "Using NTLM.");
+                byte[] challenge = SmbSession.getChallenge(server);
+                if (Log.getThreshold() < Log.INFORMATION) {
+                    ByteArrayOutputStream dump = new ByteArrayOutputStream();
+                    byte[] auth = Base64.decode(authorization.substring(5));
+                    Hexdump.hexdump(new PrintStream(dump), auth, 0,
+                            auth.length);
+                    Log.log(Log.DEBUG, "\n{0}", dump);
+                    Log.log(Log.DEBUG, "Challenge: " + Hexdump.toHexString(
+                            challenge, 0, challenge.length));
+                }
+                authentication = NtlmSsp.authenticate(request, response,
+                        challenge);
+                if (authentication == null) return;
             } else {
-                domain = defaultDomain;
+                Log.log(Log.INFORMATION, "Using Basic.");
+                String authInfo = new String(Base64.decode(
+                        authorization.substring(6)), "ISO-8859-1");
+                Log.log(Log.DEBUG, authInfo);
+                int index = authInfo.indexOf(':');
+                String user = (index != -1) ? authInfo.substring(0, index) :
+                        authInfo;
+                String password = (index != -1) ?
+                        authInfo.substring(index + 1) : "";
+                String domain;
+                if ((index = user.indexOf('\\')) != -1 ||
+                        (index = user.indexOf('/')) != -1) {
+                    domain = user.substring(0, index);
+                    user = user.substring(index + 1);
+                } else {
+                    domain = defaultDomain;
+                }
+                authentication = new NtlmPasswordAuthentication(domain, user,
+                        password);
             }
-            String password = (index != -1) ?
-                    authInfo.substring(authInfo.indexOf(':') + 1) : null;
-            authentication = new NtlmPasswordAuthentication(domain, user,
-                    password);
             try {
                 SmbSession.logon(server, authentication);
+                Log.log(Log.DEBUG, "Authenticated \"{0}\" against \"{1}\".",
+                        new Object[] { authentication, server });
             } catch (SmbAuthException ex) {
-                if (enableNtlm) response.setHeader("WWW-Authenticate", "NTLM");
-                response.addHeader("WWW-Authenticate", "Basic realm=\"" +
-                        realm + "\"");
-                response.setHeader("Connection", "close");
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.flushBuffer();
+                Log.log(Log.DEBUG, "Authentication failed: {0}", ex);
+                fail(server, request, response);
                 return;
             }
-        } else if (alwaysAuthenticate && server != null) {
-            if (enableNtlm) response.setHeader("WWW-Authenticate", "NTLM");
-            if (usingBasic && enableBasic) {
-                response.addHeader("WWW-Authenticate", "Basic realm=\"" +
-                        realm + "\"");
+            HttpSession session = request.getSession();
+            if (session != null) {
+                Map credentials = (Map)
+                        session.getAttribute("davenport.credentials");
+                if (credentials == null) {
+                    credentials = new Hashtable();
+                    session.setAttribute("davenport.credentials", credentials);
+                }
+                credentials.put(server, authentication);
+                Log.log(Log.DEBUG, "Cached Credentials: \n{0}", credentials);
             }
-            response.setHeader("Connection", "close");
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.flushBuffer();
-            return;
+        } else if (alwaysAuthenticate && server != null) {
+            Log.log(Log.DEBUG, "Searching Cache for credentials.");
+            HttpSession session = request.getSession(false);
+            if (session != null) {
+                Map credentials = (Map)
+                        session.getAttribute("davenport.credentials");
+                if (credentials != null) {
+                    authentication = (NtlmPasswordAuthentication)
+                            credentials.get(server);
+                }
+            }
+            if (authentication == null) {
+                Log.log(Log.DEBUG, "No credentials obtained (required).");
+                fail(null, request, response);
+                return;
+            }
+            Log.log(Log.DEBUG, "Using credentials: " + authentication);
         }
+        if (authentication == null) authentication = anonymousCredentials;
+        Log.log(Log.DEBUG, "Final credentials: " + authentication);
         MethodHandler handler = getHandler(request.getMethod());
         if (handler != null) {
             try {
+                Log.log(Log.DEBUG, "Handler is {0}", handler.getClass());
                 handler.service(request, response, authentication);
-            } catch (SmbAuthException ex) {
-                try {
-                    response.reset();
-                } catch (IllegalStateException ignore) { }
-                if (enableNtlm) response.setHeader("WWW-Authenticate", "NTLM");
-                if (usingBasic && enableBasic) {
-                    response.addHeader("WWW-Authenticate", "Basic realm=\"" +
-                            realm + "\"");
+            } catch (Throwable throwable) {
+                Log.log(Log.INFORMATION,
+                        "Error handler chain invoked for: {0}", throwable);
+                for (int i = 0; i < errorHandlers.length; i++) {
+                    try {
+                        Log.log(Log.DEBUG, "Error handler is {0}",
+                                errorHandlers[i].getClass());
+                        errorHandlers[i].handle(throwable, request, response);
+                        Log.log(Log.DEBUG, "Error handler consumed throwable.");
+                        return;
+                    } catch (Throwable t) {
+                        throwable = t;
+                        if (throwable instanceof ErrorHandlerException) {
+                            throwable = ((ErrorHandlerException)
+                                    throwable).getThrowable();
+                            Log.log(Log.DEBUG,
+                                    "Error chain circumvented with: {0}",
+                                            throwable);
+                            break;
+                        }
+                        Log.log(Log.DEBUG, "Handler output: {0}", throwable);
+                    }
                 }
-                response.setHeader("Connection", "close");
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.flushBuffer();
-                return;
+                Log.log(Log.INFORMATION, "Unhandled error: {0}", throwable);
+                if (throwable instanceof SmbAuthException) {
+                    fail((((SmbAuthException) throwable).getNtStatus() ==
+                            NtStatus.NT_STATUS_ACCESS_VIOLATION) ? server :
+                                    null, request, response);
+                } else if (throwable instanceof ServletException) {
+                    throw (ServletException) throwable;
+                } else if (throwable instanceof IOException) {
+                    throw (IOException) throwable;
+                } else if (throwable instanceof RuntimeException) {
+                    throw (RuntimeException) throwable;
+                } else if (throwable instanceof Error) {
+                    throw (Error) throwable;
+                } else {
+                    throw new ServletException(throwable);
+                }
             }
         } else {
+            Log.log(Log.INFORMATION, "Unrecognized method: " +
+                    request.getMethod());
             response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
         }
     }
@@ -346,15 +544,103 @@ public class Davenport extends HttpServlet {
             try {
                 handlers.put(method.toUpperCase(), Class.forName(
                         config.getInitParameter(name)).newInstance());
+                Log.log(Log.DEBUG, "Created handler for {0}: {1}",
+                        new Object[] { method,
+                                handlers.get(method.toUpperCase()) });
             } catch (Exception ex) {
-                throw new UnavailableException(SmbDAVUtilities.getResource(
-                        Davenport.class, "cantCreateHandler",
-                                new Object[] { method, ex }, null));
+                String message = SmbDAVUtilities.getResource(Davenport.class,
+                        "cantCreateHandler", new Object[] { method, ex }, null);
+                Log.log(Log.CRITICAL, message + "\n{0}", ex);
+                throw new UnavailableException(message);
             }
         }
         Iterator iterator = handlers.values().iterator();
         while (iterator.hasNext()) {
             ((MethodHandler) iterator.next()).init(config);
+        }
+    }
+
+    private void initErrorHandlers(ServletConfig config)
+            throws ServletException {
+        List errorHandlers = new ArrayList();
+        String errorHandlerClasses = config.getInitParameter("errorHandlers");
+        if (errorHandlerClasses == null) {
+            errorHandlerClasses =
+                "smbdav.DefaultAuthErrorHandler smbdav.DefaultIOErrorHandler";
+        }
+        StringTokenizer tokenizer = new StringTokenizer(errorHandlerClasses);
+        while (tokenizer.hasMoreTokens()) {
+            String errorHandler = tokenizer.nextToken();
+            try {
+                errorHandlers.add(Class.forName(errorHandler).newInstance());
+                Log.log(Log.DEBUG, "Created error handler: " + errorHandler);
+            } catch (Exception ex) {
+                String message = SmbDAVUtilities.getResource(Davenport.class,
+                        "cantCreateErrorHandler",
+                                new Object[] { errorHandler, ex }, null);
+                Log.log(Log.CRITICAL, message + "\n{0}", ex);
+                throw new UnavailableException(message);
+            }
+        }
+        Iterator iterator = errorHandlers.iterator();
+        while (iterator.hasNext()) {
+            ((ErrorHandler) iterator.next()).init(config);
+        }
+        this.errorHandlers = (ErrorHandler[])
+                errorHandlers.toArray(new ErrorHandler[0]);
+    }
+
+    private void initFilter(ServletConfig config) throws ServletException {
+        String fileFilters = config.getInitParameter("fileFilters");
+        if (fileFilters == null) return;
+        List filters = new ArrayList();
+        StringTokenizer tokenizer = new StringTokenizer(fileFilters);
+        while (tokenizer.hasMoreTokens()) {
+            String filter = tokenizer.nextToken();
+            try {
+                SmbFileFilter fileFilter = (SmbFileFilter) Class.forName(
+                        config.getInitParameter(filter)).newInstance();
+                Log.log(Log.DEBUG, "Created filter {0}: {1}",
+                        new Object[] { filter, fileFilter.getClass() });
+                if (fileFilter instanceof DavenportFileFilter) {
+                    Properties properties = new Properties();
+                    Enumeration parameters = config.getInitParameterNames();
+                    String prefix = filter + ".";
+                    int prefixLength = prefix.length();
+                    while (parameters.hasMoreElements()) {
+                        String parameter = (String) parameters.nextElement();
+                        if (parameter.startsWith(prefix)) {
+                            properties.setProperty(
+                                    parameter.substring(prefixLength),
+                                            config.getInitParameter(parameter));
+                        }
+                    }
+                    if (Log.getThreshold() < Log.INFORMATION) {
+                        ByteArrayOutputStream stream =
+                                new ByteArrayOutputStream();
+                        properties.list(new PrintStream(stream));
+                        Object[] args = new Object[] { filter,
+                                fileFilter.getClass(), stream };
+                        Log.log(Log.DEBUG,
+                                "Initializing filter \"{0}\" ({1}):\n{2}",
+                                        args);
+                    }
+                    ((DavenportFileFilter) fileFilter).init(properties);
+                }
+                filters.add(fileFilter);
+            } catch (Exception ex) {
+                String message = SmbDAVUtilities.getResource(Davenport.class,
+                        "cantCreateFilter", new Object[] { filter, ex }, null);
+                Log.log(Log.CRITICAL, message + "\n{0}", ex);
+                throw new UnavailableException(message);
+            }
+        }
+        if (!filters.isEmpty()) {
+            this.filter = new ResourceFilter((SmbFileFilter[])
+                    filters.toArray(new SmbFileFilter[0]));
+            config.getServletContext().setAttribute(RESOURCE_FILTER,
+                    this.filter);
+            Log.log(Log.DEBUG, "Filter installed.");
         }
     }
 
@@ -368,14 +654,92 @@ public class Davenport extends HttpServlet {
                 return UniAddress.getByName(host,
                         (file.getType() == SmbFile.TYPE_WORKGROUP));
             } catch (UnknownHostException ex) {
+                Log.log(Log.DEBUG, "Unable to locate \"{0}\", " +
+                        "using default server \"{1}\".",
+                                new Object[] { host, defaultServer });
                 return defaultServer;
             }
         } catch (IOException ex) {
+            Log.log(Log.INFORMATION, "IO Exception occurred: {0}", ex);
             throw ex;
         } catch (Exception ex) {
-            throw new IOException(SmbDAVUtilities.getResource(Davenport.class,
-                    "unknownError", new Object[] { ex }, null));
+            String message = SmbDAVUtilities.getResource(Davenport.class,
+                    "unknownError", new Object[] { ex }, null);
+            Log.log(Log.WARNING, message + "\n{0}", ex);
+            throw new IOException(message);
         }
+    }
+
+    private void fail(UniAddress server, HttpServletRequest request,
+            HttpServletResponse response) throws ServletException, IOException {
+        if (server != null) {
+            HttpSession session = request.getSession(false);
+            if (session != null) {
+                Map credentials = (Map)
+                        session.getAttribute("davenport.credentials");
+                if (credentials != null) credentials.remove(server);
+                Log.log(Log.DEBUG, "Removed credentials for \"{0}\".", server);
+            }
+        }
+        try {
+            response.reset();
+        } catch (IllegalStateException ex) {
+            Log.log(Log.DEBUG, "Unable to reset response (already committed).");
+        }
+        if (enableNtlm) {
+            Log.log(Log.DEBUG, "Requesting NTLM Authentication.");
+            response.setHeader("WWW-Authenticate", "NTLM");
+        }
+        boolean usingBasic = (acceptBasic || enableBasic) &&
+                (insecureBasic || request.isSecure());
+        if (usingBasic && enableBasic) {
+            Log.log(Log.DEBUG, "Requesting Basic Authentication.");
+            response.addHeader("WWW-Authenticate", "Basic realm=\"" + realm +
+                    "\"");
+        }
+        if (closeOnAuthenticate) {
+            Log.log(Log.DEBUG, "Closing HTTP connection.");
+            response.setHeader("Connection", "close");
+        }
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.flushBuffer();
+    }
+
+    private static class ResourceFilter implements SmbFileFilter {
+
+        private SmbFileFilter[] filters;
+
+        public ResourceFilter(SmbFileFilter[] filters) {
+            this.filters = filters;
+        }
+
+        public boolean accept(SmbFile file) throws SmbException {
+            if (filters == null) return true;
+            Log.log(Log.DEBUG, "Filtering file \"{0}\".", file);
+            for (int i = 0; i < filters.length; i++) {
+                if (!filters[i].accept(file)) {
+                    Log.log(Log.DEBUG, "Filter rejected file \"{0}\". ({1})",
+                            new Object[] { file, filters[i].getClass() });
+                    return false;
+                }
+            }
+            Log.log(Log.DEBUG, "Filter accepted file \"{0}\".", file);
+            return true;
+        }
+
+        public void destroy() {
+            if (filters == null) return;
+            for (int i = filters.length - 1; i >= 0; i--) {
+                try {
+                    if (filters[i] instanceof DavenportFileFilter) {
+                        ((DavenportFileFilter) filters[i]).destroy();
+                    }
+                } catch (Throwable t) { }
+                filters[i] = null;
+            }
+            filters = null;
+        }
+
     }
 
 }

@@ -6,6 +6,96 @@ Davenport and its source code can be obtained freely from:
     http://davenport.sourceforge.net
 
 --------------------------------------------------------------------------------
+Version 0.9.9b: June 19, 2004
+
+SUMMARY OF CHANGES:
+    Added support for URL rewriting based on a context base.
+    Added per-server authentication caching.
+    Disabled closing of HTTP connection upon request for authentication.
+    Added support for pluggable error handlers.
+    Added support for pluggable logging.
+    Added ability to specify anonymous credentials.
+    Added file filter framework.
+    Updated bundled jCIFS to version 0.9.2.
+
+
+CHANGE:
+    Added support for URL rewriting based on a context base.
+DETAILS:
+    This release introduces a "contextBase" parameter, which allows Davenport
+    to rewrite URLs based on a specified base URL.  This allows for operation
+    in a reverse proxy scenario.  Additionally, a "contextBaseHeader"
+    parameter is provided to allow the base context to be specified on a
+    per-request basis.
+
+
+CHANGE:
+    Added per-server authentication caching.
+DETAILS:
+    Davenport will now store authenticated credentials in the session for
+    each server.  This eliminates several roundtrips and can improve
+    performance significantly.
+
+
+CHANGE:
+    Disabled closing of HTTP connection upon request for authentication.
+DETAILS:
+    Previous versions of Davenport closed the HTTP connection upon sending
+    the request for authentication to the client.  This resulted in
+    unnecessary network traffic.
+RESOLUTION:
+    This version introduces a parameter ("closeOnAuthenticate") which allows
+    configuration of this behavior.  By default, Davenport will no longer
+    close the HTTP connection; if this introduces incompatibilities with
+    certain clients, this parameter can be set to "true" to use the previous
+    behavior.
+
+
+CHANGE:
+    Added support for pluggable error handlers.
+DETAILS:
+    Davenport now provides a mechanism for installing handlers for errors
+    presented to the servlet.  Default handlers are provided which allow
+    configurable handling of authentication and IO errors.
+
+
+CHANGE:
+    Added support for pluggable logging.
+DETAILS:
+    Davenport now allows for pluggable logging providers, with configurable
+    severity thresholds.  See the "smbdav.Log" class for details.
+
+
+CHANGE:
+    Added ability to specify anonymous credentials.
+DETAILS:
+    A parameter ("anonymousCredentials") has been added to specify an account
+    used for anonymous access to SMB resources.  This will be used in
+    preference to the account specified by the "jcifs.smb.client.*" settings.
+    This allows the jCIFS account to be used for preauthentication, while
+    using a different account for anonymous browsing.  In previous versions,
+    the jCIFS account was used for both purposes.
+
+
+CHANGE:
+    Added file filter framework.
+DETAILS:
+    Support was added for filtering resource requests.  Extensible filters
+    based on the jCIFS SmbFileFilter interface can be installed to control
+    access to resources.  Out-of-box filters are provided for filtering
+    based on the target server and excluding hidden resources from the result
+    set.  Additionally, logical primitive filters are supplied which can be
+    used to create arbitrarily complex compound filters.
+
+
+CHANGE:
+    Updated bundled jCIFS to version 0.9.2.
+DETAILS:
+    jCIFS 0.9.2 includes numerous enhancements over the previous bundled
+    version (0.7.19).  This includes support for SMB preauthentication, which
+    resolves SMB signing issues with Windows 2003 servers.
+
+--------------------------------------------------------------------------------
 Version 0.9.8: February 12, 2004
 
 SUMMARY OF CHANGES:

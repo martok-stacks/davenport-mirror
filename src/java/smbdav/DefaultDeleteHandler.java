@@ -26,7 +26,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import jcifs.smb.NtlmPasswordAuthentication;
-import jcifs.smb.SmbAuthException;
 import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
 
@@ -44,9 +43,6 @@ public class DefaultDeleteHandler extends AbstractHandler {
      * <br>
      * If the specified file does not exist, a 404 (Not Found) error is
      * sent to the client.
-     * <br>
-     * If the user does not have sufficient privileges to perform the
-     * operation, a 401 (Unauthorized) error is sent to the client.
      *
      * @param request The request being serviced.
      * @param response The servlet response.
@@ -62,16 +58,10 @@ public class DefaultDeleteHandler extends AbstractHandler {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-        try {
-            file.delete();
-            response.setStatus(HttpServletResponse.SC_NO_CONTENT);
-            response.setContentLength(0);
-            response.flushBuffer();
-        } catch (SmbAuthException ex) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-                    SmbDAVUtilities.getResource(DefaultDeleteHandler.class,
-                            "accessDenied", null, request.getLocale()));
-        }
+        file.delete();
+        response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+        response.setContentLength(0);
+        response.flushBuffer();
     }
 
 }

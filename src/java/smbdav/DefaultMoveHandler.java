@@ -55,9 +55,6 @@ public class DefaultMoveHandler extends AbstractHandler {
      * <br>
      * If the destination was created, but the source could not be removed,
      * a 403 (Forbidden) error is sent to the client.
-     * <br>
-     * If the user does not have sufficient privileges to perform the move
-     * operation, a 401 (Unauthorized) error is sent to the client.
      *
      * @param request The request being serviced.
      * @param response The servlet response.
@@ -99,9 +96,7 @@ public class DefaultMoveHandler extends AbstractHandler {
             response.setContentLength(0);
             response.flushBuffer();
         } catch (SmbAuthException ex) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-                    SmbDAVUtilities.getResource(DefaultMoveHandler.class,
-                            "accessDenied", null, request.getLocale()));
+            throw ex;
         } catch (SmbException ex) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN,
                     SmbDAVUtilities.getResource(DefaultMoveHandler.class,

@@ -27,6 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import jcifs.smb.NtlmPasswordAuthentication;
+import jcifs.smb.SmbAuthException;
 import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
 
@@ -44,9 +45,6 @@ public class DefaultMkcolHandler extends AbstractHandler {
      * <br>
      * If the specified directory already exists, a 405 (Method Not Allowed)
      * error is sent to the client.
-     * <br>
-     * If the user does not have sufficient privileges to perform the
-     * operation, a 401 (Unauthorized) error is sent to the client.
      * <br>
      * If the directory could not be created (the parent is not a share or
      * directory, or does not exist) a 409 (Conflict) error is sent to the
@@ -70,6 +68,8 @@ public class DefaultMkcolHandler extends AbstractHandler {
             file.mkdir();
             response.setStatus(HttpServletResponse.SC_CREATED);
             response.setContentLength(0);
+        } catch (SmbAuthException ex) {
+            throw ex;
         } catch (SmbException ex) {
             response.sendError(HttpServletResponse.SC_CONFLICT,
                     ex.getMessage());

@@ -50,9 +50,6 @@ public class DefaultPutHandler extends AbstractHandler {
      * <br>
      * If the parent collection does not exist, a 409 (Conflict) error is
      * sent to the client.
-     * <br>
-     * If the user does not have sufficient privileges to perform the
-     * operation, a 401 (Unauthorized) error is sent to the client.
      *
      * @param request The request being serviced.
      * @param response The servlet response.
@@ -99,7 +96,7 @@ public class DefaultPutHandler extends AbstractHandler {
         output.close();
         response.setContentLength(0);
         response.setStatus(HttpServletResponse.SC_CREATED);
-        response.setHeader("Location", request.getRequestURL().toString());
+        response.setHeader("Location", getRequestURL(request));
         response.setHeader("Allow", "OPTIONS, HEAD, GET, DELETE, PROPFIND, " +
                 "PROPPATCH, COPY, MOVE, PUT");
         response.flushBuffer();

@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
+import jcifs.smb.SmbFileFilter;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -69,15 +70,20 @@ public class PropertiesDirector {
 
     private final PropertiesBuilder builder;
 
+    private final SmbFileFilter filter;
+
     /**
      * Creates a <code>PropertiesDirector</code> which uses the specified
      * builder to create the PROPFIND XML document.
      * 
      * @param builder The <code>PropertiesBuilder</code> used to
      * create the PROPFIND result XML document.
+     * @param filter An <code>SmbFileFilter</code> to apply when obtaining
+     * child resources.
      */
-    public PropertiesDirector(PropertiesBuilder builder) {
+    public PropertiesDirector(PropertiesBuilder builder, SmbFileFilter filter) {
         this.builder = builder;
+        this.filter = filter;
     }
 
     /**
@@ -154,13 +160,25 @@ public class PropertiesDirector {
         return builder;
     }
 
+    /**
+     * Returns the filter applied when obtaining child resources.
+     *
+     * @return The <code>SmbFileFilter</code> object that will be applied
+     * to the set of child resources.
+     */
+    protected SmbFileFilter getFilter() {
+        return filter;
+    }
+
     private void addPropertyNames(Document document, SmbFile file, String href,
             int depth) throws IOException {
         getPropertiesBuilder().addPropNames(document, file, href);
         if (depth > 0 && !file.isFile()) {
             SmbFile[] children = null;
+            SmbFileFilter filter = getFilter();
             try {
-                children = file.listFiles();
+                children = (filter != null) ? file.listFiles(filter) :
+                        file.listFiles();
             } catch (SmbException ex) { }
             if (children == null) return;
             int count = children.length;
@@ -184,8 +202,10 @@ public class PropertiesDirector {
         getPropertiesBuilder().addAllProps(document, file, href);
         if (depth > 0 && !file.isFile()) {
             SmbFile[] children = null;
+            SmbFileFilter filter = getFilter();
             try {
-                children = file.listFiles();
+                children = (filter != null) ? file.listFiles(filter) :
+                        file.listFiles();
             } catch (SmbException ex) { }
             if (children == null) return;
             int count = children.length;
@@ -209,8 +229,10 @@ public class PropertiesDirector {
         getPropertiesBuilder().addProps(document, file, href, props);
         if (depth > 0 && !file.isFile()) {
             SmbFile[] children = null;
+            SmbFileFilter filter = getFilter();
             try {
-                children = file.listFiles();
+                children = (filter != null) ? file.listFiles(filter) :
+                        file.listFiles();
             } catch (SmbException ex) { }
             if (children == null) return;
             int count = children.length;

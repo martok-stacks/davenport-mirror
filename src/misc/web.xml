@@ -4,6 +4,17 @@
     PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
     "http://java.sun.com/dtd/web-app_2_3.dtd">
 
+<!--
+    This is the Davenport deployment descriptor.  This file should be tailored
+    to your particular environment.  Example configuration settings are
+    provided below for reference, along with descriptions of how each
+    configuration parameter is used.
+
+    For those unfamiliar with XML, everything between the "<!-" and "->"
+    tags is a comment; to modify a setting below, delete the comment
+    tags wrapping it and update the parameter accordingly.
+-->
+
 <web-app>
     <servlet>
         <servlet-name>Davenport</servlet-name>
@@ -26,6 +37,38 @@
         </init-param>
         -->
 
+        <!-- anonymousCredentials:
+                Specifies an account to use when accessing resources
+                anonymously.  If "alwaysAuthenticate" is set to "false"
+                (the default), then this account will be used to access
+                SMB resources on behalf of the client when authentication
+                is not required.
+
+                If not specified, the account specified via
+                "jcifs.smb.client.domain", "jcifs.smb.client.username", and
+                "jcifs.smb.client.password" will be used to access the
+                resource.  Note that jCIFS will use the credentials
+                specified by "jcifs.smb.client.*" to establish SMB signing
+                if required by the server, so it may be necessary to
+                specify both accounts in certain circumstances.
+
+                This can also be used to establish a site-wide account
+                to use when accessing SMB resources.  This is done by
+                setting "jcifs.http.enableBasic", "jcifs.http.insecureBasic",
+                "jcifs.http.acceptBasic", and "enableNtlm" to "false",
+                disabling HTTP authentication completely.  The account
+                specified in "anonymousCredentials" will then be used to
+                access the back end SMB resources.
+
+             No default setting.
+        -->
+        <!--
+        <init-param>
+            <param-name>anonymousCredentials</param-name>
+            <param-value>MYDOMAIN\username:password</param-value>
+        </init-param>
+        -->
+
         <!-- jcifs.smb.client.domain:
                 Provides the default domain for HTTP Basic authentication.
                 If the user does not enter a domain during authentication
@@ -34,7 +77,7 @@
                 be authenticated.  This can also be used in conjunction with
                 "jcifs.smb.client.username" and "jcifs.smb.client.password" to
                 specify an account to access the SMB network during
-                anonymous browsing.
+                anonymous browsing (see also "anonymousCredentials").
 
              No default setting.
         -->
@@ -50,7 +93,7 @@
                 this can be employed in conjunction with
                 "jcifs.smb.client.domain" and "jcifs.smb.client.password"
                 to specify an account to access the SMB network on the
-                back end.
+                back end (see also "anonymousCredentials").
 
              No default setting.
         -->
@@ -66,7 +109,7 @@
                 this can be employed in conjunction with
                 "jcifs.smb.client.domain" and "jcifs.smb.client.username"
                 to specify an account to access the SMB network on the
-                back end.
+                back end (see also "anonymousCredentials").
 
              No default setting.
         -->
@@ -113,6 +156,22 @@
         <init-param>
             <param-name>jcifs.smb.lmCompatibility</param-name>
             <param-value>0</param-value>
+        </init-param>
+        -->
+
+        <!-- closeOnAuthenticate:
+                Indicates whether Davenport should send the
+                "Connection: close" header when requesting authentication
+                from the client.  Setting this to "false" (the default value)
+                will increase performance, but may cause issues with some
+                clients.
+
+             Default is "false" (do not close the connection).
+        -->
+        <!--
+        <init-param>
+            <param-name>closeOnAuthenticate</param-name>
+            <param-value>false</param-value>
         </init-param>
         -->
 
@@ -223,6 +282,134 @@
         </init-param>
         -->
 
+        <!-- smbdav.Log:
+                Specifies a logging implementation class name.  The specified
+                class must extend "smbdav.Log" and provide a no-arg
+                constructor.  If not specified, a default logger will be
+                used which logs to System.out and System.err.
+        -->
+        <!--
+        <init-param>
+            <param-name>smbdav.Log</param-name>
+            <param-value>com.foo.MyLogger</param-value>
+        </init-param>
+        -->
+
+        <!-- smbdav.Log.threshold:
+                Specifies a logging threshold.  Valid values are:
+
+                          DEBUG: Debug messages are logged.
+                    INFORMATION: Informational messages are logged.
+                        WARNING: Warning messages are logged.
+                          ERROR: Error messages are logged.
+                       CRITICAL: Critical messages are logged.
+                        NOTHING: Nothing is logged.
+
+             Default is "CRITICAL".
+        -->
+        <!--
+        <init-param>
+            <param-name>smbdav.Log.threshold</param-name>
+            <param-value>CRITICAL</param-value>
+        </init-param>
+        -->
+
+        <!-- errorHandlers:
+                Specifies a whitespace-separated list of error handling
+                classes.  Davenport will invoke each specified handler in
+                declared order to process any errors thrown by method
+                handlers.
+
+                If no handlers are specified, Davenport will install
+                "smbdav.DefaultAuthErrorHandler" and
+                "smbdav.DefaultIOErrorHandler" (in that order).  Note that
+                these may need to be added to the chain explicitly if a
+                custom handler is installed.
+        -->
+        <!--
+        <init-param>
+            <param-name>errorHandlers</param-name>
+            <param-value>smbdav.DefaultAuthErrorHandler
+                         smbdav.DefaultIOErrorHandler</param-value>
+        </init-param>
+        -->
+
+        <!-- errorHandler.authenticationFailureBehavior:
+                Specifies how Davenport's default error handler should behave
+                when authentication to an underlying resource fails.  Valid
+                settings are:
+
+                    authenticate: The request fails with an HTTP 401
+                                  status, and requests credentials from the
+                                  user.
+                    unauthorized: The request fails with an HTTP 401
+                                  (Unauthorized) status.
+                       forbidden: The request fails with an HTTP 403
+                                  (Forbidden) status.
+                        notfound: The request fails with an HTTP 404
+                                  (Not Found) status.
+                          ignore: The error is ignored, and an HTTP 200
+                                  (Success) status is returned.  This doesn't
+                                  allow access to the resource; it just
+                                  returns an empty body with a success status.
+                                  Probably not the desired behavior.
+
+             Default is "authenticate".
+        -->
+        <!--
+        <init-param>
+            <param-name>errorHandler.authenticationFailureBehavior</param-name>
+            <param-value>authenticate</param-value>
+        </init-param>
+        -->
+
+        <!-- errorHandler.ioFailureBehavior:
+                Specifies how Davenport's default error handler should behave
+                when an IO exception is encountered.  Valid settings are:
+
+                     servererror: The request fails with an HTTP 500
+                                  (Internal Server Error) status.
+                        notfound: The request fails with an HTTP 404
+                                  (Not Found) status.
+                            gone: The request fails with an HTTP 410
+                                  (Gone) status.
+                          ignore: The error is ignored, and an HTTP 200
+                                  (Success) status is returned.  This doesn't
+                                  fix the error; it just returns and empty
+                                  body with a success status.  Probably not
+                                  the desired behavior.
+
+             Default is "servererror".
+        -->
+        <!--
+        <init-param>
+            <param-name>errorHandler.ioFailureBehavior</param-name>
+            <param-value>servererror</param-value>
+        </init-param>
+        -->
+
+        <!-- errorHandler.sendError:
+                Indicates how Davenport's default error handlers should
+                relay an error status.  "true" indicates that
+                response.sendError should be used (using the container's
+                error handling mechanism).  "false" indicates that
+                response.setStatus should be used (no message is sent, just
+                the error response status).  Typically "true" will present
+                an error page to the client and close the HTTP connection.
+                "false" will present an empty response body, and typically
+                keep the connection alive (which is more desirable for
+                WebDAV clients, which would usually not see the error
+                body anyway).
+
+             Default is "true" (use response.sendError).
+        -->
+        <!--
+        <init-param>
+            <param-name>errorHandler.sendError</param-name>
+            <param-value>true</param-value>
+        </init-param>
+        -->
+
         <!-- handler.GET:
                 This gives an example of installing a custom method handler.
                 An instance of the specified class will be created and used
@@ -289,6 +476,77 @@
         <init-param>
             <param-name>request-uri.charset</param-name>
             <param-value>ISO-8859-1</param-value>
+        </init-param>
+        -->
+
+        <!-- contextBase:
+                Specifies a base HTTP context to apply to URIs within
+                Davenport.  This will be used for URL rewriting, useful
+                in a reverse proxying scenario.  Davenport will rewrite
+                URLs relative to the supplied URL context.  See also
+                "dynamicContextBase".
+
+             No context base is applied by default.
+        -->
+        <!--
+        <init-param>
+            <param-name>contextBase</param-name>
+            <param-value>https://proxy/base/</param-value>
+        </init-param>
+        -->
+
+        <!-- contextBaseHeader:
+                Indicates the name of an HTTP header containing a context base
+                to apply to URIs within Davenport.  If specified, the provided
+                header will be examined.  If the header is supplied in the
+                request, the header value will be used as the context
+                base for URL rewriting.  This will override any value
+                specified in the "contextBase" parameter.  If the header
+                is not present, the context base provided in the "contextBase"
+                parameter will be used (if available).
+
+             No context base header is used by default.
+        -->
+        <!--
+        <init-param>
+            <param-name>contextBaseHeader</param-name>
+            <param-value>Davenport-Base</param-value>
+        </init-param>
+        -->
+
+        <!-- fileFilters:
+                Specifies a set of filter names, in the order in which
+                they should be applied.  Each declared filter should have
+                a corresponding parameter specifying the name of the
+                filter implementation class.
+
+                The filter classes must implement jcifs.smb.SmbFileFilter;
+                if a filter additionally implements smbdav.DavenportFileFilter,
+                it will be initialized with a set of configuration parameters.
+                The parameters provided to the filter will be built from
+                all servlet initialization parameters that are prefixed with
+                the filters name (i.e., "myFilter.*").  The prefix will be
+                stripped from the parameter names before presentation to the
+                filter instance.
+
+                A resource must be accepted by all specified filters;
+                rejection by any of the filters will result in rejection
+                of the resource.
+
+             No filters are applied by default.
+        -->
+        <!--
+        <init-param>
+            <param-name>fileFilters</param-name>
+            <param-value>myFilter</param-value>
+        </init-param>
+        <init-param>
+            <param-name>myFilter</param-name>
+            <param-value>com.foo.MyFilter</param-value>
+        </init-param>
+        <init-param>
+            <param-name>myFilter.myParameter</param-name>
+            <param-value>myValue</param-value>
         </init-param>
         -->
     </servlet>

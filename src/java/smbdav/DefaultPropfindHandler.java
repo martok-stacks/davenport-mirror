@@ -1,6 +1,6 @@
 /* Davenport WebDAV SMB Gateway
  * Copyright (C) 2003  Eric Glass
- * Copyright (C) 2003  Ronald Tschalï¿½r
+ * Copyright (C) 2003  Ronald Tschalär
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -85,9 +85,6 @@ public class DefaultPropfindHandler extends AbstractHandler {
      * <br>
      * If the PROPFIND request is not properly formed, a 400 (Bad Request)
      * error is sent to the client.
-     * <br>
-     * If the user does not have sufficient privileges to perform the
-     * operation, a 401 (Unauthorized) error is sent to the client.
      *
      * @param request The request being serviced.
      * @param response The servlet response.
@@ -112,8 +109,9 @@ public class DefaultPropfindHandler extends AbstractHandler {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
+        String requestUrl = getRequestURL(request);
         PropertiesDirector director = new PropertiesDirector(
-                getPropertiesBuilder());
+                getPropertiesBuilder(), getFilter());
         Document properties = null;
         if (request.getContentLength() > 0) {
             DocumentBuilderFactory builderFactory =
@@ -141,11 +139,9 @@ public class DefaultPropfindHandler extends AbstractHandler {
             }
             String name = (child != null) ? child.getLocalName() : null;
             if (child == null || "allprop".equals(name)) {
-                properties = director.getAllProperties(file,
-                        request.getRequestURL().toString(), depth);
+                properties = director.getAllProperties(file, requestUrl, depth);
             } else if ("propname".equals(name)) {
-                properties = director.getPropertyNames(file,
-                        request.getRequestURL().toString(), depth);
+                properties = director.getPropertyNames(file, requestUrl, depth);
             } else if ("prop".equals(name)) {
                 List propList = new Vector();
                 nodes = child.getChildNodes();
@@ -155,15 +151,14 @@ public class DefaultPropfindHandler extends AbstractHandler {
                     if (node instanceof Element) propList.add(node);
                 }
                 Element[] props = (Element[]) propList.toArray(new Element[0]);
-                properties = director.getProperties(file,
-                        request.getRequestURL().toString(), props, depth);
+                properties = director.getProperties(file, requestUrl, props,
+                        depth);
             } else  {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST);
                 return;
             }
         } else {
-            properties = director.getAllProperties(file,
-                    request.getRequestURL().toString(), depth);
+            properties = director.getAllProperties(file, requestUrl, depth);
         }
         try {
             Transformer transformer =

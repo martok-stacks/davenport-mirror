@@ -40,9 +40,6 @@ public class DefaultOptionsHandler extends AbstractHandler {
      * Services requests which use the HTTP OPTIONS method.
      * This implementation provides the list of supported methods for
      * the target resource.
-     * <br>
-     * If the user does not have sufficient privileges to query the
-     * resource, a 401 (Unauthorized) error is sent to the client.
      *
      * @param request The request being serviced.
      * @param response The servlet response.
