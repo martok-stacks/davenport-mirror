@@ -44,26 +44,26 @@ public class DefaultOptionsHandler extends AbstractHandler {
      * @param request The request being serviced.
      * @param response The servlet response.
      * @param auth The user's authentication information.
-     * @throws SerlvetException If an application error occurs.
+     * @throws ServletException If an application error occurs.
      * @throws IOException If an IO error occurs while handling the request.
      */
     public void service(HttpServletRequest request,
             HttpServletResponse response, NtlmPasswordAuthentication auth)
                     throws IOException, ServletException {
-        response.setHeader("DAV", "1");
+        boolean lockSupport = (getLockManager() != null);
+        response.setHeader("DAV", lockSupport ? "1,2" : "1");
         response.setHeader("MS-Author-Via", "DAV");
         SmbFile file = getSmbFile(request, auth);
+        StringBuffer allow = new StringBuffer();
         if (file.exists()) {
-            if (file.isFile()) {
-                response.setHeader("Allow", "OPTIONS, HEAD, GET, DELETE, " +
-                        "PROPFIND, PROPPATCH, COPY, MOVE, PUT");
-            } else {
-                response.setHeader("Allow", "OPTIONS, HEAD, GET, DELETE, " +
-                        "PROPFIND, PROPPATCH, COPY, MOVE");
-            }
+            allow.append("OPTIONS, HEAD, GET, DELETE, PROPFIND");
+            allow.append(", PROPPATCH, COPY, MOVE");
+            if (file.isFile()) allow.append(", PUT");
         } else {
-            response.setHeader("Allow", "OPTIONS, MKCOL, PUT, POST");
+            allow.append("OPTIONS, MKCOL, PUT, POST");
         }
+        if (lockSupport) allow.append(", LOCK, UNLOCK");
+        response.setHeader("Allow", allow.toString());
     }
 
 }

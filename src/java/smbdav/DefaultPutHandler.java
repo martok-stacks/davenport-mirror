@@ -20,6 +20,7 @@ package smbdav;
 
 import java.io.InputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 import javax.servlet.ServletException;
 
@@ -78,15 +79,23 @@ public class DefaultPutHandler extends AbstractHandler {
             response.sendError(HttpServletResponse.SC_CONFLICT);
             return;
         }
-        int result = checkConditionalRequest(request, file);
+        int result = checkLockOwnership(request, file);
+        if (result != HttpServletResponse.SC_OK) {
+            response.sendError(result);
+            return;
+        }
+        result = checkConditionalRequest(request, file);
         if (result != HttpServletResponse.SC_OK) {
             response.setStatus(result);
-            response.setContentLength(0);
             response.flushBuffer();
             return;
         }
+        LockManager lockManager = getLockManager();
+        if (lockManager != null) {
+            file = lockManager.getLockedResource(file, auth);
+        }
         InputStream input = request.getInputStream();
-        SmbFileOutputStream output = new SmbFileOutputStream(file);
+        OutputStream output = new SmbFileOutputStream(file);
         byte[] buf = new byte[8192];
         int count;
         while ((count = input.read(buf)) != -1) {
@@ -94,7 +103,6 @@ public class DefaultPutHandler extends AbstractHandler {
         }
         output.flush();
         output.close();
-        response.setContentLength(0);
         response.setStatus(HttpServletResponse.SC_CREATED);
         response.setHeader("Location", getRequestURL(request));
         response.setHeader("Allow", "OPTIONS, HEAD, GET, DELETE, PROPFIND, " +

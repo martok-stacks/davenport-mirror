@@ -58,9 +58,22 @@ public class DefaultDeleteHandler extends AbstractHandler {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
+        int result = checkLockOwnership(request, file);
+        if (result != HttpServletResponse.SC_OK) {
+            response.sendError(result);
+            return;
+        }
+        result = checkConditionalRequest(request, file);
+        if (result != HttpServletResponse.SC_OK) {
+            response.sendError(result);
+            return;
+        }
+        LockManager lockManager = getLockManager();
+        if (lockManager != null) {
+            file = lockManager.getLockedResource(file, auth);
+        }
         file.delete();
         response.setStatus(HttpServletResponse.SC_NO_CONTENT);
-        response.setContentLength(0);
         response.flushBuffer();
     }
 

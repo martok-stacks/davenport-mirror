@@ -1,6 +1,6 @@
 /* Davenport WebDAV SMB Gateway
  * Copyright (C) 2003  Eric Glass
- * Copyright (C) 2003  Ronald Tschalär
+ * Copyright (C) 2003  Ronald Tschalar
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -63,8 +63,6 @@ import jcifs.util.Hexdump;
 
 /**
  * This servlet provides a WebDAV gateway to CIFS/SMB shared resources.
- * This servlet provides WebDAV "Level 1" services; locking, etc. are not
- * supported.
  * <p>
  * You can specify jCIFS configuration settings in the servlet's
  * initialization parameters which will be applied to the environment.
@@ -164,6 +162,12 @@ public class Davenport extends HttpServlet {
     public static final String RESOURCE_FILTER = "davenport.resourceFilter";
 
     /**
+     * The name of the servlet context attribute containing the
+     * <code>LockManager</code> which maintains WebDAV locks.
+     */
+    public static final String LOCK_MANAGER = "davenport.lockManager";
+
+    /**
      * The name of the servlet context attribute containing the charset used
      * to interpret request URIs.
      */
@@ -174,6 +178,14 @@ public class Davenport extends HttpServlet {
      * URL rewriting.
      */
     public static final String CONTEXT_BASE = "davenport.contextBase";
+
+    /**
+     * The name of the request attribute containing the authenticated
+     * principal.
+     */
+    public static final String PRINCIPAL = "davenport.principal";
+
+    private static final int DEFAULT_SMB_PORT = 139;
 
     private final Map handlers = new HashMap();
 
@@ -207,16 +219,19 @@ public class Davenport extends HttpServlet {
 
     public void init() throws ServletException {
         ServletConfig config = getServletConfig();
-        String logProvider = config.getInitParameter("smbdav.Log");
+        String logProviderName = Log.class.getName();
+        String logProvider = config.getInitParameter(logProviderName);
         if (logProvider != null) {
             try {
-                System.setProperty("smbdav.Log", logProvider);
+                System.setProperty(logProviderName, logProvider);
             } catch (Exception ignore) { }
         }
-        String logThreshold = config.getInitParameter("smbdav.Log.threshold");
+        String logThreshold = config.getInitParameter(logProviderName +
+                ".threshold");
         if (logThreshold != null) {
             try {
-                System.setProperty("smbdav.Log.threshold", logThreshold);
+                System.setProperty(logProviderName + ".threshold",
+                        logThreshold);
             } catch (Exception ignore) { }
         }
         Log.log(Log.DEBUG, "Logging initialized.");
@@ -286,7 +301,7 @@ public class Davenport extends HttpServlet {
         if (realm == null) realm = "Davenport";
         String alwaysAuthenticate =
                 config.getInitParameter("alwaysAuthenticate");
-        this.alwaysAuthenticate =
+        this.alwaysAuthenticate = (alwaysAuthenticate == null) ||
                 Boolean.valueOf(alwaysAuthenticate).booleanValue();
         String anonymousCredentials =
                 config.getInitParameter("anonymousCredentials");
@@ -308,6 +323,7 @@ public class Davenport extends HttpServlet {
             this.anonymousCredentials =
                     new NtlmPasswordAuthentication(domain, user, password);
         }
+        initLockManager(config);
         initFilter(config);
         initHandlers(config);
         initErrorHandlers(config);
@@ -331,6 +347,7 @@ public class Davenport extends HttpServlet {
             filter = null;
         }
         ServletContext context = getServletContext();
+        context.removeAttribute(LOCK_MANAGER);
         context.removeAttribute(RESOURCE_FILTER);
         context.removeAttribute(REQUEST_URI_CHARSET);
         Log.log(Log.DEBUG, "Davenport finished destroy.");
@@ -347,8 +364,29 @@ public class Davenport extends HttpServlet {
      */
     protected void service(HttpServletRequest request,
             HttpServletResponse response) throws IOException, ServletException {
-        Log.log(Log.INFORMATION, "Received request for \"{0}\".",
-                request.getRequestURL());
+        Log.log(Log.INFORMATION, "Received {0} request for \"{1}\".",
+                new Object[] { request.getMethod(), request.getRequestURL() });
+        if (Log.getThreshold() < Log.INFORMATION) {
+            StringBuffer headers = new StringBuffer();
+            Enumeration headerNames = request.getHeaderNames();
+            while (headerNames.hasMoreElements()) {
+                String headerName = (String) headerNames.nextElement();
+                headers.append("    ").append(headerName).append(": ");
+                Enumeration headerValues = request.getHeaders(headerName);
+                while (headerValues.hasMoreElements()) {
+                    headers.append(headerValues.nextElement());
+                    if (headerValues.hasMoreElements()) headers.append(", ");
+                }
+                if (headerNames.hasMoreElements()) headers.append("\n");
+            }
+            Log.log(Log.DEBUG, "Headers:\n{0}", headers);
+            HttpSession session = request.getSession(false);
+            if (session != null) {
+                Log.log(Log.DEBUG, "Active session: {0}", session.getId());
+            } else {
+                Log.log(Log.DEBUG, "Session not yet established.");
+            }
+        }
         String contextBase = this.contextBase;
         if (contextBaseHeader != null) {
             String dynamicBase = request.getHeader(contextBaseHeader);
@@ -361,14 +399,34 @@ public class Davenport extends HttpServlet {
         }
         boolean usingBasic = (acceptBasic || enableBasic) &&
                 (insecureBasic || request.isSecure());
-        Log.log(Log.DEBUG, "Using Basic? " + usingBasic);
+        if (Log.getThreshold() < Log.INFORMATION) {
+            Log.log(Log.DEBUG, enableNtlm ? "NTLM auth offered to client." :
+                    "NTLM auth NOT offered to client.");
+            Log.log(Log.DEBUG, enableBasic ? "Basic auth offered to client." :
+                    "Basic auth NOT offered to client.");
+            if (acceptBasic) {
+                Log.log(Log.DEBUG,
+                        "Basic auth accepted if supplied by client.");
+            }
+            Log.log(Log.DEBUG, insecureBasic ?
+                    "Basic auth enabled over insecure requests." :
+                            "Basic auth disabled over insecure requests.");
+            Log.log(Log.DEBUG, request.isSecure() ?
+                    "This request is secure." : "This request is NOT secure.");
+            Log.log(Log.DEBUG, usingBasic ?
+                    "Basic auth ENABLED for this request." :
+                            "Basic auth DISABLED for this request.");
+        }
         String pathInfo = request.getPathInfo();
         if (pathInfo == null || "".equals(pathInfo)) pathInfo = "/";
         String target = "smb:/" + pathInfo;
         UniAddress server = null;
+        int port = DEFAULT_SMB_PORT;
         try {
             server = getServer(target);
-            Log.log(Log.DEBUG, "Target server is \"{0}\".", server);
+            port = getPort(target);
+            Log.log(Log.DEBUG, "Target is \"{0}:{1}\".",
+                    new Object[] { server, new Integer(port) });
         } catch (UnknownHostException ex) {
             Log.log(Log.DEBUG, "Unknown server: {0}", ex);
             response.sendError(HttpServletResponse.SC_NOT_FOUND,
@@ -385,7 +443,7 @@ public class Davenport extends HttpServlet {
                         true, 0, "Basic ", 0, 6)))) {
             if (authorization.regionMatches(true, 0, "NTLM ", 0, 5)) {
                 Log.log(Log.INFORMATION, "Using NTLM.");
-                byte[] challenge = SmbSession.getChallenge(server);
+                byte[] challenge = SmbSession.getChallenge(server, port);
                 if (Log.getThreshold() < Log.INFORMATION) {
                     ByteArrayOutputStream dump = new ByteArrayOutputStream();
                     byte[] auth = Base64.decode(authorization.substring(5));
@@ -422,9 +480,10 @@ public class Davenport extends HttpServlet {
                         password);
             }
             try {
-                SmbSession.logon(server, authentication);
-                Log.log(Log.DEBUG, "Authenticated \"{0}\" against \"{1}\".",
+                Log.log(Log.DEBUG, "Authenticating \"{0}\" against \"{1}\".",
                         new Object[] { authentication, server });
+                SmbSession.logon(server, port, authentication);
+                Log.log(Log.DEBUG, "Authentication succeeded.");
             } catch (SmbAuthException ex) {
                 Log.log(Log.DEBUG, "Authentication failed: {0}", ex);
                 fail(server, request, response);
@@ -432,24 +491,47 @@ public class Davenport extends HttpServlet {
             }
             HttpSession session = request.getSession();
             if (session != null) {
+                Log.log(Log.DEBUG, "Obtained handle to session \"{0}\".",
+                        session.getId());
                 Map credentials = (Map)
                         session.getAttribute("davenport.credentials");
                 if (credentials == null) {
+                    Log.log(Log.DEBUG, "Created new credential cache.");
                     credentials = new Hashtable();
                     session.setAttribute("davenport.credentials", credentials);
                 }
-                credentials.put(server, authentication);
-                Log.log(Log.DEBUG, "Cached Credentials: \n{0}", credentials);
+                credentials.put(server.getHostAddress(), authentication);
+                Log.log(Log.DEBUG, "Cached Credentials for {0}: {1}",
+                        new Object[] { server.getHostAddress(),
+                                authentication });
+                if (Log.getThreshold() < Log.INFORMATION) {
+                    Log.log(Log.DEBUG, "Dumping credential cache:\n{0}",
+                            credentials);
+                }
             }
         } else if (alwaysAuthenticate && server != null) {
             Log.log(Log.DEBUG, "Searching Cache for credentials.");
             HttpSession session = request.getSession(false);
             if (session != null) {
+                Log.log(Log.DEBUG, "Obtained handle to session \"{0}\".",
+                        session.getId());
                 Map credentials = (Map)
                         session.getAttribute("davenport.credentials");
                 if (credentials != null) {
+                    Log.log(Log.DEBUG, "Dumping credential cache:\n{0}",
+                            credentials);
                     authentication = (NtlmPasswordAuthentication)
-                            credentials.get(server);
+                            credentials.get(server.getHostAddress());
+                    if (authentication != null) {
+                        Log.log(Log.DEBUG,
+                                "Found cached credentials for {0}: {1}",
+                                        new Object[] { server.getHostAddress(),
+                                                authentication });
+                    } else {
+                        Log.log(Log.DEBUG,
+                                "No cached credentials found for {0}.",
+                                        server.getHostAddress());
+                    }
                 }
             }
             if (authentication == null) {
@@ -461,6 +543,9 @@ public class Davenport extends HttpServlet {
         }
         if (authentication == null) authentication = anonymousCredentials;
         Log.log(Log.DEBUG, "Final credentials: " + authentication);
+        if (authentication != null) {
+            request.setAttribute(PRINCIPAL, authentication);
+        }
         MethodHandler handler = getHandler(request.getMethod());
         if (handler != null) {
             try {
@@ -525,6 +610,57 @@ public class Davenport extends HttpServlet {
         return (MethodHandler) handlers.get(method.toUpperCase());
     }
 
+    private void initLockManager(ServletConfig config) throws ServletException {
+        String factoryClass = LockManagerFactory.class.getName();
+        String lockProvider = config.getInitParameter(factoryClass);
+        if (lockProvider != null) {
+            try {
+                System.setProperty(factoryClass, lockProvider);
+            } catch (Exception ignore) { }
+        }
+        try {
+            LockManager lockManager = null;
+            LockManagerFactory factory = LockManagerFactory.newInstance();
+            if (factory != null) {
+                Properties properties = new Properties();
+                String prefix = factoryClass + ".";
+                int prefixLength = prefix.length();
+                Enumeration parameters = config.getInitParameterNames();
+                while (parameters.hasMoreElements()) {
+                    String param = (String) parameters.nextElement();
+                    if (!param.startsWith(prefix)) continue;
+                    String property = param.substring(prefixLength);
+                    properties.setProperty(property,
+                            config.getInitParameter(param));
+                }
+                if (Log.getThreshold() < Log.INFORMATION) {
+                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                    properties.list(new PrintStream(stream));
+                    Object[] args = new Object[] { factory.getClass(), stream };
+                    Log.log(Log.DEBUG,
+                            "Initializing lock manager factory {0}):\n{1}",
+                                    args);
+                }
+                factory.setProperties(properties);
+                lockManager = factory.newLockManager();
+            }
+            if (lockManager != null) {
+                config.getServletContext().setAttribute(LOCK_MANAGER,
+                        lockManager);
+                Log.log(Log.DEBUG, "Installed lock manager: {0}",
+                        lockManager.getClass().getName());
+            } else {
+                Log.log(Log.INFORMATION,
+                        "No lock manager available, locking support disabled.");
+            }
+        } catch (Exception ex) {
+            Log.log(Log.CRITICAL, "Unable to obtain lock manager: {0}", ex);
+            if (ex instanceof ServletException) throw (ServletException) ex;
+            if (ex instanceof RuntimeException) throw (RuntimeException) ex;
+            throw new ServletException(ex);
+        }
+    }
+
     private void initHandlers(ServletConfig config) throws ServletException {
         handlers.clear();
         handlers.put("OPTIONS", new DefaultOptionsHandler());
@@ -538,6 +674,10 @@ public class Davenport extends HttpServlet {
         handlers.put("MOVE", new DefaultMoveHandler());
         handlers.put("PUT", new DefaultPutHandler());
         handlers.put("MKCOL", new DefaultMkcolHandler());
+        if (config.getServletContext().getAttribute(LOCK_MANAGER) != null) {
+            handlers.put("LOCK", new DefaultLockHandler());
+            handlers.put("UNLOCK", new DefaultUnlockHandler());
+        }
         Enumeration parameters = config.getInitParameterNames();
         while (parameters.hasMoreElements()) {
             String name = (String) parameters.nextElement();
@@ -646,6 +786,23 @@ public class Davenport extends HttpServlet {
         }
     }
 
+    private int getPort(String target) throws IOException {
+        try {
+            SmbFile file = new SmbFile(target);
+            if (file.getServer() == null) return DEFAULT_SMB_PORT;
+            int port = file.getURL().getPort();
+            return (port != -1) ? port : DEFAULT_SMB_PORT;
+        } catch (IOException ex) {
+            Log.log(Log.INFORMATION, "IO Exception occurred: {0}", ex);
+            throw ex;
+        } catch (Exception ex) {
+            String message = SmbDAVUtilities.getResource(Davenport.class,
+                    "unknownError", new Object[] { ex }, null);
+            Log.log(Log.WARNING, message + "\n{0}", ex);
+            throw new IOException(message);
+        }
+    }
+
     private UniAddress getServer(String target) throws IOException {
         try {
             SmbFile file = new SmbFile(target);
@@ -679,7 +836,9 @@ public class Davenport extends HttpServlet {
             if (session != null) {
                 Map credentials = (Map)
                         session.getAttribute("davenport.credentials");
-                if (credentials != null) credentials.remove(server);
+                if (credentials != null) {
+                    credentials.remove(server.getHostAddress());
+                }
                 Log.log(Log.DEBUG, "Removed credentials for \"{0}\".", server);
             }
         }

@@ -35,6 +35,8 @@ import org.w3c.dom.Element;
  */
 public class PropertiesDirector {
 
+    private static final int INFINITY = 3;
+
     private static final boolean[] ESCAPED;
 
     static {
@@ -92,16 +94,20 @@ public class PropertiesDirector {
      *
      * @param file The resource whose property names are to be retrieved.
      * @param href The HTTP URL by which the resource was accessed.
-     * @param depth The depth to which the request is applied.  <code>0</code>
-     * specifies the resource only; <code>1</code> specifies the resource
-     * and its immediate children; <code>INFINITY</code> specifies the
-     * resource and all of its progeny.
+     * @param depth The depth to which the request is applied.  One of
+     * <code>SmbDAVUtilities.RESOURCE_ONLY_DEPTH</code>
+     * (applied to the resource only),
+     * <code>SmbDAVUtilities.CHILDREN_DEPTH</code>
+     * (applied to the resource and its immediate children), or
+     * <code>SmbDAVUtilities.INFINITE_DEPTH</code>
+     * (the resource and all of its progeny).
      * @return An XML <code>Document</code> containing the PROPFIND result.
      * @throws IOException If an IO error occurs during the construction
      * of the document.
      */
     public Document getPropertyNames(SmbFile file, String href, int depth)
             throws IOException {
+        if (depth == SmbDAVUtilities.INFINITE_DEPTH) depth = INFINITY;
         Document document = getPropertiesBuilder().createDocument();
         addPropertyNames(document, file, href, depth);
         return document;
@@ -113,16 +119,20 @@ public class PropertiesDirector {
      *
      * @param file The resource whose properties are to be retrieved.
      * @param href The HTTP URL by which the resource was accessed.
-     * @param depth The depth to which the request is applied.  <code>0</code>
-     * specifies the resource only; <code>1</code> specifies the resource
-     * and its immediate children; <code>INFINITY</code> specifies the
-     * resource and all of its progeny.
+     * @param depth The depth to which the request is applied.  One of
+     * <code>SmbDAVUtilities.RESOURCE_ONLY_DEPTH</code>
+     * (applied to the resource only),
+     * <code>SmbDAVUtilities.CHILDREN_DEPTH</code>
+     * (applied to the resource and its immediate children), or
+     * <code>SmbDAVUtilities.INFINITE_DEPTH</code>
+     * (the resource and all of its progeny).
      * @return An XML <code>Document</code> containing the PROPFIND result.
      * @throws IOException If an IO error occurs during the construction
      * of the document.
      */
     public Document getAllProperties(SmbFile file, String href, int depth)
             throws IOException {
+        if (depth == SmbDAVUtilities.INFINITE_DEPTH) depth = INFINITY;
         Document document = getPropertiesBuilder().createDocument();
         addAllProperties(document, file, href, depth);
         return document;
@@ -135,16 +145,20 @@ public class PropertiesDirector {
      * @param file The resource whose properties are to be retrieved.
      * @param href The HTTP URL by which the resource was accessed.
      * @param props The names of the properties which are to be retrieved.
-     * @param depth The depth to which the request is applied.  <code>0</code>
-     * specifies the resource only; <code>1</code> specifies the resource
-     * and its immediate children; <code>INFINITY</code> specifies the
-     * resource and all of its progeny.
+     * @param depth The depth to which the request is applied.  One of
+     * <code>SmbDAVUtilities.RESOURCE_ONLY_DEPTH</code>
+     * (applied to the resource only),
+     * <code>SmbDAVUtilities.CHILDREN_DEPTH</code>
+     * (applied to the resource and its immediate children), or
+     * <code>SmbDAVUtilities.INFINITE_DEPTH</code>
+     * (the resource and all of its progeny).
      * @return An XML <code>Document</code> containing the PROPFIND result.
      * @throws IOException If an IO error occurs during the construction
      * of the document.
      */
     public Document getProperties(SmbFile file, String href, Element[] props,
             int depth) throws IOException {
+        if (depth == SmbDAVUtilities.INFINITE_DEPTH) depth = INFINITY;
         Document document= getPropertiesBuilder().createDocument();
         addProperties(document, file, href, props, depth);
         return document;

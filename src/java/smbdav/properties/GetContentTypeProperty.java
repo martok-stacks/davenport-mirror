@@ -1,6 +1,6 @@
 /* Davenport WebDAV SMB Gateway
  * Copyright (C) 2003  Eric Glass
- * Copyright (C) 2003  Ronald Tschalär
+ * Copyright (C) 2003  Ronald Tschalar
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public

@@ -37,6 +37,13 @@ import org.w3c.dom.Element;
 public interface Property {
 
     /**
+     * The XMLNS namespace URI,
+     * "<code>http://www.w3.org/2000/xmlns/</code>".
+     */ 
+    public static final String XMLNS_NAMESPACE =
+            "http://www.w3.org/2000/xmlns/";
+
+    /**
      * The WebDAV namespace URI, "<code>DAV:</code>".
      */
     public static final String DAV_NAMESPACE = "DAV:";

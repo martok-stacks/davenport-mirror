@@ -1,6 +1,6 @@
 /* Davenport WebDAV SMB Gateway
  * Copyright (C) 2003  Eric Glass
- * Copyright (C) 2003  Ronald Tschalär
+ * Copyright (C) 2003  Ronald Tschalar
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -158,8 +158,7 @@ public class DefaultGetHandler extends AbstractHandler {
         super.init(config);
         propertiesBuilder = new DefaultPropertiesBuilder();
         propertiesBuilder.init(config);
-        stylesheetLocation = getServletConfig().getInitParameter(
-                "directory.xsl");
+        stylesheetLocation = config.getInitParameter("directory.xsl");
         if (stylesheetLocation == null) {
             stylesheetLocation = "/META-INF/directory.xsl";
         }
@@ -321,7 +320,7 @@ public class DefaultGetHandler extends AbstractHandler {
                 transformer.transform(new DOMSource(properties),
                         new StreamResult(collector));
                 response.setContentType("text/html; charset=\"utf-8\"");
-                response.getOutputStream().write(collector.toByteArray());
+                collector.writeTo(response.getOutputStream());
                 response.flushBuffer();
             } catch (TransformerException ex) {
                 throw new IOException(ex.getMessage());
@@ -338,7 +337,6 @@ public class DefaultGetHandler extends AbstractHandler {
         int result = checkConditionalRequest(request, file);
         if (result != HttpServletResponse.SC_OK) {
             response.setStatus(result);
-            response.setContentLength(0);
             response.flushBuffer();
             return;
         }

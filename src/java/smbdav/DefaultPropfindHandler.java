@@ -1,6 +1,6 @@
 /* Davenport WebDAV SMB Gateway
  * Copyright (C) 2003  Eric Glass
- * Copyright (C) 2003  Ronald Tschalär
+ * Copyright (C) 2003  Ronald Tschalar
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,6 +31,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import javax.xml.transform.Transformer;
@@ -57,16 +58,19 @@ import org.w3c.dom.NodeList;
  */
 public class DefaultPropfindHandler extends AbstractHandler {
 
-    private static final int INFINITY = 3;
-
     private static final String DAV_NAMESPACE = "DAV:";
 
     private PropertiesBuilder propertiesBuilder;
+
+    private long maximumXmlRequest;
 
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
         propertiesBuilder = new DefaultPropertiesBuilder();
         propertiesBuilder.init(config);
+        String maximumXmlRequest = config.getInitParameter("maximumXmlRequest");
+        this.maximumXmlRequest = (maximumXmlRequest != null) ?
+                Long.parseLong(maximumXmlRequest) : 20000l;
     }
 
     public void destroy() {
@@ -89,21 +93,13 @@ public class DefaultPropfindHandler extends AbstractHandler {
      * @param request The request being serviced.
      * @param response The servlet response.
      * @param auth The user's authentication information.
-     * @throws SerlvetException If an application error occurs.
+     * @throws ServletException If an application error occurs.
      * @throws IOException If an IO error occurs while handling the request.
      */
     public void service(HttpServletRequest request,
             HttpServletResponse response, NtlmPasswordAuthentication auth)
                     throws ServletException, IOException {
-        String requestedDepth = request.getHeader("Depth");
-        int depth;
-        if ("0".equals(requestedDepth)) {
-            depth = 0;
-        } else if ("1".equals(requestedDepth)) {
-            depth = 1;
-        } else {
-            depth = INFINITY;
-        }
+        int depth = SmbDAVUtilities.parseDepth(request.getHeader("Depth"));
         SmbFile file = getSmbFile(request, auth);
         if (!file.exists()) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -117,10 +113,16 @@ public class DefaultPropfindHandler extends AbstractHandler {
             DocumentBuilderFactory builderFactory =
                     DocumentBuilderFactory.newInstance();
             builderFactory.setNamespaceAware(true);
+            builderFactory.setExpandEntityReferences(false);
+            builderFactory.setIgnoringComments(true);
+            builderFactory.setCoalescing(true);
             Document document = null;
             try {
-                document = builderFactory.newDocumentBuilder().parse(
-                        request.getInputStream());
+                DocumentBuilder builder = builderFactory.newDocumentBuilder();
+                builder.setEntityResolver(BlockedEntityResolver.INSTANCE);
+                document = builder.parse(
+                        new LimitInputStream(request.getInputStream(),
+                                maximumXmlRequest));
             } catch (Exception ex) {
                 throw new IOException(SmbDAVUtilities.getResource(
                         DefaultPropfindHandler.class, "parseError",
@@ -167,11 +169,9 @@ public class DefaultPropfindHandler extends AbstractHandler {
             ByteArrayOutputStream collector = new ByteArrayOutputStream();
             transformer.transform(new DOMSource(properties),
                     new StreamResult(collector));
-            byte[] content = collector.toByteArray();
             response.setStatus(SC_MULTISTATUS);
             response.setContentType("text/xml; charset=\"utf-8\"");
-            response.setContentLength(content.length);
-            response.getOutputStream().write(content);
+            collector.writeTo(response.getOutputStream());
             response.flushBuffer();
         } catch (TransformerException ex) {
             throw new IOException(ex.getMessage());

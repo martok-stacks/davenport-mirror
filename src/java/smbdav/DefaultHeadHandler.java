@@ -76,7 +76,6 @@ public class DefaultHeadHandler extends AbstractHandler {
         int result = checkConditionalRequest(request, file);
         if (result != HttpServletResponse.SC_OK) {
             response.setStatus(result);
-            response.setContentLength(0);
             response.flushBuffer();
             return;
         }

@@ -42,9 +42,6 @@ import org.w3c.dom.Node;
  */
 public abstract class AbstractProperty implements Property {
 
-    private static final String XMLNS_NAMESPACE =
-            "http://www.w3.org/2000/xmlns/";
-
     private ServletConfig config;
 
     private String namespace;

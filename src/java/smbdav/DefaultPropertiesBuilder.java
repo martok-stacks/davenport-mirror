@@ -1,6 +1,6 @@
 /* Davenport WebDAV SMB Gateway
  * Copyright (C) 2003  Eric Glass
- * Copyright (C) 2003  Ronald Tschalär
+ * Copyright (C) 2003  Ronald Tschalar
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -36,6 +36,7 @@ import javax.servlet.UnavailableException;
 
 import javax.servlet.http.HttpServletResponse;
 
+import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import jcifs.smb.SmbFile;
@@ -52,7 +53,9 @@ import smbdav.properties.GetLastModifiedProperty;
 import smbdav.properties.IsCollectionProperty;
 import smbdav.properties.IsHiddenProperty;
 import smbdav.properties.IsReadOnlyProperty;
+import smbdav.properties.LockDiscoveryProperty;
 import smbdav.properties.ResourceTypeProperty;
+import smbdav.properties.SupportedLockProperty;
 
 /**
  * Default builder for the PROPFIND result XML document.  This builder
@@ -125,9 +128,11 @@ public class DefaultPropertiesBuilder implements PropertiesBuilder {
         DocumentBuilderFactory builderFactory =
                 DocumentBuilderFactory.newInstance();
         builderFactory.setNamespaceAware(true);
+        builderFactory.setExpandEntityReferences(false);
         try {
-            Document document =
-                    builderFactory.newDocumentBuilder().newDocument();
+            DocumentBuilder builder = builderFactory.newDocumentBuilder();
+            builder.setEntityResolver(BlockedEntityResolver.INSTANCE);
+            Document document = builder.newDocument();
             Element multistatus = document.createElementNS(
                     Property.DAV_NAMESPACE, "multistatus");
             multistatus.setAttributeNS(XMLNS_NAMESPACE, "xmlns",
@@ -241,6 +246,11 @@ public class DefaultPropertiesBuilder implements PropertiesBuilder {
         propertyMap.put("isreadonly", IsReadOnlyProperty.class);
         propertyMap.put("iscollection", IsCollectionProperty.class);
         propertyMap.put("getetag", GetETagProperty.class);
+        if (config.getServletContext().getAttribute(Davenport.LOCK_MANAGER) !=
+                null) {
+            propertyMap.put("lockdiscovery", LockDiscoveryProperty.class);
+            propertyMap.put("supportedlock", SupportedLockProperty.class);
+        }
         propertyMap.put("resourcetype", ResourceTypeProperty.class);
         Enumeration parameters = config.getInitParameterNames();
         while (parameters.hasMoreElements()) {

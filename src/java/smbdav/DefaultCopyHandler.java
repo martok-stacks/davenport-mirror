@@ -81,6 +81,21 @@ public class DefaultCopyHandler extends AbstractHandler {
                             "sameResource", null, request.getLocale()));
             return;
         }
+        int result = checkLockOwnership(request, destinationFile);
+        if (result != HttpServletResponse.SC_OK) {
+            response.sendError(result);
+            return;
+        }
+        result = checkConditionalRequest(request, destinationFile);
+        if (result != HttpServletResponse.SC_OK) {
+            response.sendError(result);
+            return;
+        }
+        LockManager lockManager = getLockManager();
+        if (lockManager != null) {
+            destinationFile =lockManager.getLockedResource(destinationFile,
+                    auth);
+        }
         boolean overwritten = false;
         if (destinationFile.exists()) {
             if ("T".equalsIgnoreCase(request.getHeader("Overwrite"))) {
@@ -94,7 +109,7 @@ public class DefaultCopyHandler extends AbstractHandler {
         file.copyTo(destinationFile);
         response.setStatus(overwritten ? HttpServletResponse.SC_NO_CONTENT :
                 HttpServletResponse.SC_CREATED);
-        response.setContentLength(0);
+        response.flushBuffer();
     }
 
 }

@@ -78,6 +78,32 @@ public class DefaultMoveHandler extends AbstractHandler {
         }
         SmbFile destinationFile = createSmbFile(destination, auth);
         if (destinationFile.equals(file)) return;
+        int result = checkLockOwnership(request, file);
+        if (result != HttpServletResponse.SC_OK) {
+            response.sendError(result);
+            return;
+        }
+        result = checkLockOwnership(request, destinationFile);
+        if (result != HttpServletResponse.SC_OK) {
+            response.sendError(result);
+            return;
+        }
+        result = checkConditionalRequest(request, file);
+        if (result != HttpServletResponse.SC_OK) {
+            response.sendError(result);
+            return;
+        }
+        result = checkConditionalRequest(request, destinationFile);
+        if (result != HttpServletResponse.SC_OK) {
+            response.sendError(result);
+            return;
+        }
+        LockManager lockManager = getLockManager();
+        if (lockManager != null) {
+            file = lockManager.getLockedResource(file, auth);
+            destinationFile = lockManager.getLockedResource(destinationFile,
+                    auth);
+        }
         boolean overwritten = false;
         if (destinationFile.exists()) {
             if ("T".equalsIgnoreCase(request.getHeader("Overwrite"))) {
@@ -93,7 +119,6 @@ public class DefaultMoveHandler extends AbstractHandler {
             file.delete();
             response.setStatus(overwritten ? HttpServletResponse.SC_NO_CONTENT :
                     HttpServletResponse.SC_CREATED);
-            response.setContentLength(0);
             response.flushBuffer();
         } catch (SmbAuthException ex) {
             throw ex;

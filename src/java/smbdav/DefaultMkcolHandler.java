@@ -1,6 +1,6 @@
 /* Davenport WebDAV SMB Gateway
  * Copyright (C) 2003  Eric Glass
- * Copyright (C) 2003  Ronald Tschalär
+ * Copyright (C) 2003  Ronald Tschalar
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -64,16 +64,26 @@ public class DefaultMkcolHandler extends AbstractHandler {
             response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
             return;
         }
+        int result = checkLockOwnership(request, file);
+        if (result != HttpServletResponse.SC_OK) {
+            response.sendError(result);
+            return;
+        }
+        result = checkConditionalRequest(request, file);
+        if (result != HttpServletResponse.SC_OK) {
+            response.sendError(result);
+            return;
+        }
         try {
             file.mkdir();
             response.setStatus(HttpServletResponse.SC_CREATED);
-            response.setContentLength(0);
         } catch (SmbAuthException ex) {
             throw ex;
         } catch (SmbException ex) {
             response.sendError(HttpServletResponse.SC_CONFLICT,
                     ex.getMessage());
         }
+        response.flushBuffer();
     }
 
 }
