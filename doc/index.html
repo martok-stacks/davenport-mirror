@@ -152,6 +152,43 @@
             authentication.  Defaults to "Davenport".</td>
         </tr>
         <tr>
+            <td class="code">jcifs.smb.lmCompatibility</td>
+            <td>
+            Controls the NTLM authentication "level".  This setting mirrors the
+            Windows <tt>LMCompatibilityLevel</tt> registry setting.  This is
+            detailed in <a href="http://support.microsoft.com/default.aspx?scid=KB;en-us;239869">Microsoft Knowledge Base Article 239869</a>;
+            it can be set to one of the following levels:
+            <p>
+            <table>
+                <tr valign="top">
+                    <th nowrap align="right">0 or 1</th>
+                    <td>
+                        Uses LM and NTLM authentication.  "0" is the default
+                        setting, and is the most interoperable.  It is
+                        less secure than higher levels, however.
+                    </td>
+                </tr>
+                <tr valign="top">
+                    <th nowrap align="right">2</th>
+                    <td>
+                        Uses NTLM authentication only.  This increases
+                        security by removing the cryptographically weaker
+                        LM authentication, at the expense of interoperability
+                        with older domain controllers.
+                    </td>
+                </tr>
+                <tr valign="top">
+                    <th nowrap align="right">3, 4, or 5</th>
+                    <td>
+                        Uses LMv2 authentication only.  This offers
+                        a higher level of security, but is not interoperable
+                        with pre-Windows NT4 Service Pack 4 servers.
+                    </td>
+                </tr>
+            </table>
+            </td>
+        </tr>
+        <tr>
             <td class="code">jcifs.netbios.wins</td>
             <td>Specifies the IP address of the WINS server.  This is
             recommended if a WINS server is present; it is required when
@@ -341,7 +378,7 @@
         </ul>
         </p>
         <p>
-        The jCIFS library, version 0.7.4 or higher, is also required.  This
+        The jCIFS library, version 0.7.11 or higher, is also required.  This
         library is bundled with Davenport, and can also be obtained from the
         jCIFS web site
         (<a href="http://jcifs.samba.org/">http://jcifs.samba.org</a>).
@@ -350,5 +387,6 @@
         <a href="api/index.html">API Documentation</a><br>
         <a href="rfc2518.txt">HTTP Extensions for Distributed Authoring -- WEBDAV (RFC 2518)</a><br>
         <a href="draft-crhertel-smb-url-04.txt">SMB Filesharing URL Scheme (Internet-Draft)</a><br>
+        <a href="ntlm.html">The NTLM Authentication Protocol</a><br>
     </body>
 </html>

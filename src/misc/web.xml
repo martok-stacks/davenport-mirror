@@ -8,6 +8,24 @@
     <servlet>
         <servlet-name>Davenport</servlet-name>
         <servlet-class>smbdav.Davenport</servlet-class>
+        <!-- alwaysAuthenticate:
+                If set to "true", authentication will always be requested
+                (even if not normally required to access the resource in
+                question).  This prevents anonymous browsing of unprotected
+                resources.  Note that if a default domain controller is not set
+                (either via "jcifs.smb.client.domain" or
+                "jcifs.http.domainController") the root will still be
+                anonymously browseable.
+
+             Default is "false" (disabled).
+        -->
+        <!--
+        <init-param>
+            <param-name>alwaysAuthenticate</param-name>
+            <param-value>false</param-value>
+        </init-param>
+        -->
+
         <!-- jcifs.smb.client.domain:
                 Provides the default domain for HTTP Basic authentication.
                 If the user does not enter a domain during authentication
@@ -39,6 +57,27 @@
         <init-param>
             <param-name>jcifs.http.domainController</param-name>
             <param-value>10.10.2.20</param-value>
+        </init-param>
+        -->
+
+        <!-- jcifs.smb.lmCompatibility:
+                Controls the NTLM authentication level.  This setting mirrors
+                the Windows LMCompatibilityLevel registry setting:
+
+                  0,1: Use LM/NTLM authentication.
+                    2: Use NTLM authentication only.  This eliminates the
+                       cryptographically weak LM response, and is more secure
+                       than Levels 0 and 1.
+                3,4,5: Use LMv2 authentication.  This offers a higher level
+                       of security, but is incompatible with pre-Windows NT
+                       Service Pack 4 servers.
+
+             Default is "0" (Use LM/NTLM).
+        -->
+        <!--
+        <init-param>
+            <param-name>jcifs.smb.lmCompatibility</param-name>
+            <param-value>0</param-value>
         </init-param>
         -->
 

@@ -1,5 +1,6 @@
 /* Davenport WebDAV SMB Gateway
  * Copyright (C) 2003  Eric Glass
+ * Copyright (C) 2003  Ronald Tschalär
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -39,9 +40,14 @@ public class GetContentTypeProperty extends AbstractProperty {
 
     public int retrieve(SmbFile file, Element element)
             throws IOException {
-        String contentType = getServletConfig().getServletContext(
-                ).getMimeType(file.getName());
-        if (contentType == null) contentType = "application/octet-stream";
+        String contentType;
+        if (file.isDirectory()) {
+            contentType = "httpd/unix-directory";
+        } else {
+            contentType = getServletConfig().getServletContext().getMimeType(
+                    file.getName());
+            if (contentType == null) contentType = "application/octet-stream";
+        }
         element.appendChild(element.getOwnerDocument().createTextNode(
                 contentType));
         return HttpServletResponse.SC_OK;

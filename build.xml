@@ -2,7 +2,7 @@
 
     <property name="build" value="build"/>
 
-    <property name="version" value="0.9.0"/>
+    <property name="version" value="0.9.5"/>
 
     <property name="distribution" value="davenport-${version}"/>
 
@@ -111,6 +111,7 @@ dependencies: Checks that all class dependencies are met.
 
     <target name="compile" depends="dependencies">
         <mkdir dir="${build}/classes"/>
+        <fixcrlf srcdir="src/java" tab="remove" tablength="4"/>
         <javac srcdir="src/java" destdir="${build}/classes">
             <classpath>
                 <fileset dir="lib">

@@ -1,5 +1,6 @@
 /* Davenport WebDAV SMB Gateway
  * Copyright (C) 2003  Eric Glass
+ * Copyright (C) 2003  Ronald Tschalär
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -197,6 +198,7 @@ public class DefaultPropertiesBuilder implements PropertiesBuilder {
             resultList.add(prop);
         }
         Iterator entries = results.entrySet().iterator();
+        Element documentElement = document.getDocumentElement();
         while (entries.hasNext()) {
             Map.Entry entry = (Map.Entry) entries.next();
             int result = ((Integer) entry.getKey()).intValue();
@@ -213,10 +215,17 @@ public class DefaultPropertiesBuilder implements PropertiesBuilder {
             propstat.appendChild(prop);
             Iterator resultProps = ((List) entry.getValue()).iterator();
             while (resultProps.hasNext()) {
-                prop.appendChild((Element) resultProps.next());
+                Element element = (Element) resultProps.next();
+                prop.appendChild(element);
+                String prefix = element.getPrefix();
+                if (prefix != null && !documentElement.hasAttributeNS(
+                        XMLNS_NAMESPACE, "xmlns:" + prefix)) {
+                    documentElement.setAttributeNS(XMLNS_NAMESPACE,
+                            "xmlns:" + prefix, element.getNamespaceURI());
+                }
             }
         }
-        document.getDocumentElement().appendChild(response);
+        documentElement.appendChild(response);
     }
 
     private void initProperties(ServletConfig config) throws ServletException {

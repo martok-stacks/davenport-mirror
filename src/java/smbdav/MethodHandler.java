@@ -59,6 +59,43 @@ import jcifs.smb.NtlmPasswordAuthentication;
 public interface MethodHandler {
 
     /**
+     * Interim status code (102) indicating that the server has accepted the
+     * request but has not yet completed it.
+     */ 
+    public static final int SC_PROCESSING = 102;
+
+    /**
+     * Status code (207) providing status for multiple independent operations.
+     */ 
+    public static final int SC_MULTISTATUS = 207;
+
+    /**
+     * Status code (422) indicating that the server understands the content
+     * type of the request entity, and the syntax of the request entity is
+     * correct, but the contained instructions could not be processed.
+     */ 
+    public static final int SC_UNPROCESSABLE_ENTITY = 422;
+
+    /**
+     * Status code (423) indicating that the source or destination resource
+     * of a method is locked.
+     */ 
+    public static final int SC_LOCKED = 423;
+
+    /**
+     * Status code (424) indicating that the method could not be performed
+     * because an action upon which this action depends failed.
+     */ 
+    public static final int SC_FAILED_DEPENDENCY = 424;
+
+    /**
+     * Status code (507) indicating that the method could not be performed
+     * on a resource because the server is unable to store the representation
+     * needed to successfully complete the request.
+     */ 
+    public static final int SC_INSUFFICIENT_STORAGE = 507;
+
+    /**
      * Called by the Davenport servlet to indicate that the handler is being
      * placed into service.  Semantics are identical to the <code>Servlet</code>
      * <code>init</code> method; the method is called exactly once after

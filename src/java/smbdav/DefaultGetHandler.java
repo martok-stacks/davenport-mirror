@@ -1,5 +1,6 @@
 /* Davenport WebDAV SMB Gateway
  * Copyright (C) 2003  Eric Glass
+ * Copyright (C) 2003  Ronald Tschalär
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -313,9 +314,11 @@ public class DefaultGetHandler extends AbstractHandler {
                     type = "TYPE_UNKNOWN";
                 }
                 transformer.setParameter("type", type);
+                transformer.setOutputProperty("encoding", "UTF-8");
                 ByteArrayOutputStream collector = new ByteArrayOutputStream();
                 transformer.transform(new DOMSource(properties),
                         new StreamResult(collector));
+                response.setContentType("text/html; charset=\"utf-8\"");
                 response.getOutputStream().write(collector.toByteArray());
                 response.flushBuffer();
             } catch (TransformerException ex) {

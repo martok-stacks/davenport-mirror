@@ -6,6 +6,125 @@ Davenport and its source code can be obtained freely from:
     http://davenport.sourceforge.net
 
 --------------------------------------------------------------------------------
+Version 0.9.5: July 16, 2003
+
+Very special thanks to Ronald Tschalär, who identified and provided patches for
+nearly all of the items in this release (including all bugfixes).  As a result,
+WebDAV functionality with several clients has been significantly improved.
+
+Note that the default authentication behavior has changed when accessing
+resources; Davenport will now require authentication only when demanded by
+the underlying resource.  This implies that publicly accessible shares may now
+be publicly accessible through Davenport as well.  The previous behavior can
+be enabled by setting the "alwaysAuthenticate" parameter to "true"; this will
+request authentication when accessing any resource on a given server.
+
+SUMMARY OF CHANGES:
+    Fixed a bug involving the status code in the PROPFIND response.
+    Fixed a bug involving the status code in the MKCOL response.
+    Fixed a bug involving missing namespace declarations in the PROPFIND
+    document.
+    Changed the getcontenttype value for collections.
+    Changed the default authentication behavior for anonymous browsing.
+    Set the content length in the response for all handlers.
+    Added support for LMv2 authentication.
+    Added technical documentation on the NTLM authentication protocol.
+    Updated bundled jCIFS to version 0.7.11, and changed the minimum
+    jCIFS version to 0.7.11.
+
+
+CHANGE:
+    Fixed a bug involving the status code in the PROPFIND response.
+DETAILS:
+    The PROPFIND response previously returned a status code of 200 ("OK")
+    rather than 207 ("Multi-Status").  This was a bug in Davenport.
+RESOLUTION:
+    Fixed to return status code 207 ("Multi-Status").
+
+
+CHANGE:
+    Fixed a bug involving the status code in the MKCOL response.
+DETAILS:
+    The PROPFIND response previously returned a status code of 200 ("OK")
+    rather than 201 ("Created").  This was a bug in Davenport.
+RESOLUTION:
+    Fixed to return status code 201 ("Created").
+
+
+CHANGE:
+    Fixed a bug involving missing namespace declarations in the PROPFIND
+    document.
+DETAILS:
+    The PROPFIND XML document previously only added declarations for
+    the standard "DAV:" namespace and the Microsoft attribute namespace.
+    PROPFIND requests which included elements from other namespaces would
+    result in missing namespace declarations in the resulting document.
+    This was a bug in Davenport.
+RESOLUTION:
+    Fixed to add new namespace declarations as encountered.
+
+
+CHANGE:
+    Changed the getcontenttype value for collections.
+DETAILS:
+    Under Konqueror, the folder icon is not displayed for collection resources
+    unless the value of the getcontenttype property is "httpd/unix-directory".
+    Previous versions of Davenport used "application/octet-stream" as the value
+    for this property.  While the value is undefined in the WebDAV
+    specification, it does indicate that it should match the value of the
+    Content-Type header in the GET response (which would be neither
+    "application/octet-stream" or "httpd/unix-directory", but "text/html").
+    After weighing the advantages and disadvantages, the decision was made
+    to break from the specification and use "httpd/unix-directory" to better
+    support Konqueror users.  This may change in future Davenport revisions
+    if it is determined to cause issues with WebDAV clients which enforce
+    the specification semantics.
+
+
+CHANGE:
+    Changed the default authentication behavior for anonymous browsing.
+DETAILS:
+    Previous versions of Davenport always authenticated the user, even when
+    anonymous access was allowed to a given resource.  The default behavior
+    has been changed to only request authentication when it is required by
+    the resource being accessed.  A servlet parameter, "alwaysAuthenticate",
+    has been added to revert to the previous behavior.
+
+
+CHANGE:
+    Set the content length in the response for all handlers.
+DETAILS:
+    Some of the request handlers did not set an explicit content length.
+    While not technically an error, it was inconsistent behavior.
+
+
+CHANGE:
+    Added support for LMv2 authentication.
+DETAILS:
+    With jCIFS 0.7.11, support for LMv2 authentication has been added.  This
+    provides a more secure authentication scheme than standard NTLM.
+    Documentation on the "jcifs.smb.lmCompatibility" property has been added,
+    providing instructions on enabling LMv2 authentication.
+
+
+CHANGE:
+    Added technical documentation on the NTLM authentication protocol.
+DETAILS:
+    Compiled a body of documentation on the NTLM authentication protocol, used
+    as the basis for LMv2 support in jCIFS and as a general developer's
+    reference on NTLM.
+
+
+CHANGE:
+    Updated bundled jCIFS to version 0.7.11, and changed the minimum
+    jCIFS version to 0.7.11.
+DETAILS:
+    jCIFS 0.7.11 includes numerous fixes identified since the release of the
+    previous bundled version (0.7.6), and includes support for LMv2
+    authentication.  A minor change to the Davenport authentication code
+    relies on a 0.7.11 API enhancement.
+
+--------------------------------------------------------------------------------
 Version 0.9.0: May 12, 2003
 
 SUMMARY OF CHANGES:

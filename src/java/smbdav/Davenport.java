@@ -1,5 +1,6 @@
 /* Davenport WebDAV SMB Gateway
  * Copyright (C) 2003  Eric Glass
+ * Copyright (C) 2003  Ronald Tschalär
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -137,8 +138,6 @@ import jcifs.util.Base64;
  */
 public class Davenport extends HttpServlet {
 
-    private static final NtlmSsp NTLM_SSP = new NtlmSsp();
-
     private final Map handlers = new HashMap();
 
     private UniAddress defaultServer;
@@ -147,12 +146,18 @@ public class Davenport extends HttpServlet {
 
     private String realm;
 
+    private boolean alwaysAuthenticate;
+
     private boolean enableBasic;
 
     private boolean insecureBasic;
 
     public void init() throws ServletException {
         ServletConfig config = getServletConfig();
+        String alwaysAuthenticate =
+                config.getInitParameter("alwaysAuthenticate");
+        this.alwaysAuthenticate =
+                Boolean.valueOf(alwaysAuthenticate).booleanValue();
         Config.setProperty("jcifs.netbios.cachePolicy", "600");
         Config.setProperty("jcifs.smb.client.attrExpirationPeriod", "120000");
         Enumeration enumeration = config.getInitParameterNames();
@@ -219,15 +224,15 @@ public class Davenport extends HttpServlet {
         }
         NtlmPasswordAuthentication authentication = null;
         String authorization = request.getHeader("Authorization");
-        if (authorization != null && authorization.startsWith("NTLM ")) {
+        if (authorization != null &&
+                authorization.regionMatches(true, 0, "NTLM ", 0, 5)) {
             byte[] challenge = SmbSession.getChallenge(server);
-            authentication = NTLM_SSP.doAuthentication(request, response,
-                    challenge);
+            authentication = NtlmSsp.authenticate(request, response, challenge);
             if (authentication == null) return;
         } else if (authorization != null && usingBasic &&
-                authorization.startsWith("Basic ")) {
+                authorization.regionMatches(true, 0, "Basic ", 0, 6)) {
             String authInfo = new String(
-                    Base64.decode(authorization.substring(6)), "US-ASCII");
+                    Base64.decode(authorization.substring(6)), "ISO-8859-1");
             int index = authInfo.indexOf(':');
             String user = (index != -1) ?
                     authInfo.substring(0, authInfo.indexOf(':')) : authInfo;
@@ -256,7 +261,7 @@ public class Davenport extends HttpServlet {
                 response.flushBuffer();
                 return;
             }
-        } else if (server != null) {
+        } else if (alwaysAuthenticate && server != null) {
             response.setHeader("WWW-Authenticate", "NTLM");
             if (usingBasic) {
                 response.addHeader("WWW-Authenticate", "Basic realm=\"" +

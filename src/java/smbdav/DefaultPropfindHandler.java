@@ -1,5 +1,6 @@
 /* Davenport WebDAV SMB Gateway
  * Copyright (C) 2003  Eric Glass
+ * Copyright (C) 2003  Ronald Tschalär
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -169,7 +170,11 @@ public class DefaultPropfindHandler extends AbstractHandler {
             ByteArrayOutputStream collector = new ByteArrayOutputStream();
             transformer.transform(new DOMSource(properties),
                     new StreamResult(collector));
-            response.getOutputStream().write(collector.toByteArray());
+            byte[] content = collector.toByteArray();
+            response.setStatus(SC_MULTISTATUS);
+            response.setContentType("text/xml; charset=\"utf-8\"");
+            response.setContentLength(content.length);
+            response.getOutputStream().write(content);
             response.flushBuffer();
         } catch (TransformerException ex) {
             throw new IOException(ex.getMessage());

@@ -21,6 +21,7 @@ tr {
 th {
     font-family: Verdana, Tahoma, Helvetica, Arial, sans-serif;
     font-size: 10pt;
+    padding: 4px;
     background-color: #bbccaa;
 }
 td {

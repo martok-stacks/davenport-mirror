@@ -98,6 +98,7 @@ public class DefaultCopyHandler extends AbstractHandler {
             file.copyTo(destinationFile);
             response.setStatus(overwritten ? HttpServletResponse.SC_NO_CONTENT :
                     HttpServletResponse.SC_CREATED);
+            response.setContentLength(0);
         } catch (SmbAuthException ex) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
                     "Operation denied.");
