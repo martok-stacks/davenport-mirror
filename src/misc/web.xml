@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!DOCTYPE web-app
+    PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+    "http://java.sun.com/dtd/web-app_2_3.dtd">
+
+<web-app>
+    <servlet>
+        <servlet-name>Davenport</servlet-name>
+        <servlet-class>smbdav.Davenport</servlet-class>
+        <!-- jcifs.smb.client.domain:
+                Provides the default domain for HTTP Basic authentication.
+                If the user does not enter a domain during authentication
+                (i.e., "username" instead of "MYDOMAIN\username"), this
+                specifies the default domain against which the user should
+                be authenticated.
+
+             No default setting.
+        -->
+        <!--
+        <init-param>
+            <param-name>jcifs.smb.client.domain</param-name>
+            <param-value>MYDOMAIN</param-value>
+        </init-param>
+        -->
+
+        <!-- jcifs.http.domainController:
+                Provides the IP address of the server used to authenticate
+                clients.  This is only used for browsing the root ("smb://")
+                and when a controller cannot be located for a workgroup.
+                If not specified, the system will attempt to locate a
+                controller for the domain specified in "jcifs.smb.client.domain"
+                (if set).  This does not have to be a real domain controller;
+                any server or workstation running SMB services can be used.
+
+             No default setting.
+        -->
+        <!--
+        <init-param>
+            <param-name>jcifs.http.domainController</param-name>
+            <param-value>MYDOMAIN</param-value>
+        </init-param>
+        -->
+
+        <!-- jcifs.http.enableBasic:
+                Enables/Disables HTTP Basic authentication.  Basic will be
+                used by clients which are not NTLM-capable.  HTTP Basic will
+                only be offered over HTTPS by default (see also
+                "jcifs.http.insecureBasic").
+
+             Default is "true" (enabled).
+        -->
+        <!--
+        <init-param>
+            <param-name>jcifs.http.enableBasic</param-name>
+            <param-value>true</param-value>
+        </init-param>
+        -->
+
+        <!-- jcifs.http.insecureBasic:
+                Enables/Disables HTTP Basic authentication over an insecure
+                channel.  Normally, Basic is only offered over HTTPS.  Setting
+                this to "true" will offer HTTP Basic authentication over
+                insecure HTTP.  This sends login information over the network
+                unencrypted, and is a SEVERE security risk.  This is STRONGLY
+                advised against.
+
+             Default is "false" (disabled).
+        -->
+        <!--
+        <init-param>
+            <param-name>jcifs.http.insecureBasic</param-name>
+            <param-value>false</param-value>
+        </init-param>
+        -->
+
+        <!-- jcifs.http.basicRealm:
+                Specifies the realm that will be presented during HTTP Basic
+                authentication.
+
+             Default is "Davenport".
+        -->
+        <!--
+        <init-param>
+            <param-name>jcifs.http.basicRealm</param-name>
+            <param-value>Davenport</param-value>
+        </init-param>
+        -->
+
+        <!-- handler.GET:
+                This gives an example of installing a custom method handler.
+                An instance of the specified class will be created and used
+                to service HTTP GET requests.  Installing POST or other
+                method handlers is done similarly.
+
+             Default handlers are provided for each method; the default
+             GET handler is "smbdav.DefaultGetHandler".
+        -->
+        <!--
+        <init-param>
+            <param-name>handler.GET</param-name>
+            <param-value>smbdav.DefaultGetHandler</param-value>
+        </init-param>
+        -->
+
+        <!-- directory.xsl:
+                Provides the location of the default directory view
+                stylesheet.
+
+             Default is "/META-INF/directory.xsl".
+        -->
+        <!--
+        <init-param>
+            <param-name>directory.xsl</param-name>
+            <param-value>/META-INF/directory.xsl</param-value>
+        </init-param>
+        -->
+
+        <!-- directory.configuration:
+                Provides the location of the directory view configuration page.
+                Users can configure preferred directory view stylesheets by
+                pointing their browsers at any Davenport collection resource
+                (such as a server, workgroup, or even the root) and passing
+                "configure" as a URL parameter:
+
+                http://server/davenport/any/?configure
+
+                The location of the configuration page that is loaded can be
+                specified here.
+
+             Default is "/META-INF/configuration.html", which loads a
+             configuration page from the Davenport jar.
+        -->
+        <!--
+        <init-param>
+            <param-name>directory.configuration</param-name>
+            <param-value>/META-INF/configuration.html</param-value>
+        </init-param>
+        -->
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>Davenport</servlet-name>
+        <url-pattern>/*</url-pattern>
+    </servlet-mapping>
+</web-app>

@@ -1,0 +1,99 @@
+/* Davenport WebDAV SMB Gateway
+ * Copyright (C) 2003  Eric Glass
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+package smbdav;
+
+import java.io.IOException;
+
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import jcifs.smb.NtlmPasswordAuthentication;
+
+/**
+ * A class can implement the <code>MethodHandler</code> interface when it
+ * wishes to service requests via a particular HTTP method.  The
+ * Davenport servlet registers a method handler for a particular method,
+ * and dispatches requests to that handler.
+ * To install a handler,
+ * <ul>
+ * <li>Create a class implementing the <code>MethodHandler</code>
+ * interface.  The implementing class must also provide a no-arg
+ * constructor.</li>
+ * <li>Add a servlet initialization parameter of the form
+ * <i>handler.<method></i> to the Davenport deployment descriptor.  The
+ * value should be the name of the class implementing
+ * <code>MethodHandler</code>.</li>
+ * </ul>
+ * As an example, if you have a class <code>com.foo.MyGetHandler</code>
+ * designed to service HTTP GET requests, you would add the following to the
+ * Davenport deployment descriptor:
+ * <p>
+ * <pre>
+ * &lt;init-param&gt;
+ *     &lt;param-name&gt;handler.GET&lt;/param-name&gt;
+ *     &lt;param-value&gt;com.foo.MyGetHandler&lt;/param-value&gt;
+ * &lt;/init-param&gt;
+ * </pre>
+ *
+ * @author Eric Glass
+ */
+public interface MethodHandler {
+
+    /**
+     * Called by the Davenport servlet to indicate that the handler is being
+     * placed into service.  Semantics are identical to the <code>Servlet</code>
+     * <code>init</code> method; the method is called exactly once after
+     * instantiation.
+     * 
+     * @param config a <code>ServletConfig</code> object containing
+     * the Davenport servlet's configuration and initialization parameters.
+     * @throws ServletException If an error occurs during initialization.
+     */
+    public void init(ServletConfig config) throws ServletException;
+
+    /**
+     * Called by the Davenport servlet to indicate that the handler is being
+     * taken out of service.  Semantics are identical to the
+     * <code>Servlet</code> <code>destroy</code> method.  This method
+     * gives the handler an opportunity to clean up any resources that
+     * are being held.  After this method has been called, the
+     * <code>service</code> method will not be invoked again.
+     */
+    public void destroy();
+
+    /**
+     * Called by the Davenport servlet to allow the handler to service a
+     * request.  The Davenport servlet will select an appropriate handler
+     * for a given HTTP method, and dispatch the request accordingly.
+     * 
+     * @param request The request that is being serviced.
+     * @param response The servlet response object.
+     * @param auth The authentication information provided by the user.
+     * @throws IOException If an input or output exception occurs.
+     * @throws ServletException If an exception occurs that interferes with
+     * normal operation.
+     */
+    public void service(HttpServletRequest request,
+            HttpServletResponse response, NtlmPasswordAuthentication auth)
+                    throws IOException, ServletException;
+
+}
