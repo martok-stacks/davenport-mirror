@@ -1,0 +1,950 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration-html.xsl"?>
+<config>
+    <parameter-class name="Authentication Settings">
+        <description>
+            <para>These settings control how Davenport authenticates users.</para>
+        </description>
+        <parameter name="alwaysAuthenticate">
+            <summary>Determines whether authentication of the end user is always performed, or only performed if required by the resource being accessed.</summary>
+            <description>
+                <para>If set to "true", authentication will always be requested (even if not normally required to access the resource in question).  This prevents anonymous browsing of unprotected resources.  Note that if a default domain controller is not set (either via "jcifs.smb.client.domain" or "jcifs.http.domainController") the root will still be anonymously browseable.</para>
+            </description>
+            <default-value>true (authentication is always performed if possible).</default-value>
+            <example-value>true</example-value>
+        </parameter>
+        <parameter name="anonymousCredentials">
+            <summary>Specifies an account to use for anonymous browsing.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.smb.client.domain"/>
+                <related-parameter name="jcifs.smb.client.username"/>
+                <related-parameter name="jcifs.smb.client.password"/>
+            </related-parameters>
+            <description>
+                <para>If "alwaysAuthenticate" is set to "false", then the account specified here will be used to access SMB resources on behalf of the client when authentication is not required by the underlying resource.</para>
+                <para>If not specified, the account specified via "jcifs.smb.client.domain", "jcifs.smb.client.username", and "jcifs.smb.client.password" will be used to access the resource.  Note that jCIFS will use the credentials specified by "jcifs.smb.client.*" to establish SMB signing if required by the server, so it may be necessary to specify both accounts in certain circumstances.</para>
+            </description>
+            <example-value>DOMAIN\username:password</example-value>
+        </parameter>
+        <parameter name="jcifs.smb.client.domain" importance="high">
+            <summary>Specifies the default Windows domain.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.smb.client.username"/>
+                <related-parameter name="jcifs.smb.client.password"/>
+                <related-parameter name="anonymousCredentials"/>
+                <related-parameter name="jcifs.http.domainController"/>
+            </related-parameters>
+            <description>
+                <para>This is the default Windows (NetBIOS) domain used by jCIFS and Davenport.  This setting is employed in the following scenarios:</para>
+                <list>
+                    <list-item>If a username is provided without a domain specified (for example, if the user enters "myname" instead of "MYDOMAIN\myname" during HTTP Basic authentication), this domain will be used.</list-item>
+                    <list-item>If anonymous browsing is enabled and the "anonymousCredentials" setting is not configured, this domain will be used in forming the credentials for anonymous access.</list-item>
+                    <list-item>If anonymous browsing is disabled and the "jcifs.http.domainController" setting is not configured, jCIFS will attempt to locate a controller for this domain to authenticate requests to the "root" resource.</list-item>
+                    <list-item>If SMB signing is required by the SMB server, this domain will be used in forming the credentials for establishing the signed connection.</list-item>
+                </list>
+                <para>Note that Windows 2003 servers require SMB signing by default; it may be necessary to configure this setting to enable interoperability with these servers.</para>
+            </description>
+            <example-value>DOMAIN</example-value>
+        </parameter>
+        <parameter name="jcifs.smb.client.username" importance="high">
+            <summary>Specifies the default Windows username.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.smb.client.domain"/>
+                <related-parameter name="jcifs.smb.client.password"/>
+                <related-parameter name="anonymousCredentials"/>
+            </related-parameters>
+            <description>
+                <para>This is the default Windows username used by jCIFS and Davenport.  This setting is employed in the following scenarios:</para>
+                <list>
+                    <list-item>If anonymous browsing is enabled and the "anonymousCredentials" setting is not configured, this username will be used in forming the credentials for anonymous access.</list-item>
+                    <list-item>If SMB signing is required by the SMB server, this username will be used in forming the credentials for establishing the signed connection.</list-item>
+                </list>
+                <para>Note that Windows 2003 servers require SMB signing by default; it may be necessary to configure this setting to enable interoperability with these servers.</para>
+            </description>
+            <example-value>username</example-value>
+        </parameter>
+        <parameter name="jcifs.smb.client.password" importance="high">
+            <summary>Specifies the default Windows password.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.smb.client.domain"/>
+                <related-parameter name="jcifs.smb.client.username"/>
+                <related-parameter name="anonymousCredentials"/>
+            </related-parameters>
+            <description>
+                <para>This is the default Windows password used by jCIFS and Davenport.  This setting is employed in the following scenarios:</para>
+                <list>
+                    <list-item>If anonymous browsing is enabled and the "anonymousCredentials" setting is not configured, this password will be used in forming the credentials for anonymous access.</list-item>
+                    <list-item>If SMB signing is required by the SMB server, this password will be used in forming the credentials for establishing the signed connection.</list-item>
+                </list>
+                <para>Note that Windows 2003 servers require SMB signing by default; it may be necessary to configure this setting to enable interoperability with these servers.</para>
+            </description>
+            <example-value>password</example-value>
+        </parameter>
+        <parameter name="jcifs.smb.client.signingPreferred">
+            <summary>Indicates whether SMB signing is used when not required.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.smb.client.domain"/>
+                <related-parameter name="jcifs.smb.client.username"/>
+                <related-parameter name="jcifs.smb.client.password"/>
+            </related-parameters>
+            <description>
+                <para>By default, jCIFS will negotiate SMB signing if required by the server.  Setting this to "true" indicates signing should also be used when supported by the server but not required.</para>
+            </description>
+            <default-value>false (signing will be used only when required)</default-value>
+            <example-value>false</example-value>
+        </parameter>
+        <parameter name="jcifs.http.domainController" importance="high">
+            <summary>Specifies the server used to authenticate requests for the "root" resource.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.smb.client.domain"/>
+            </related-parameters>
+            <description>
+                <para>This setting provides the IP address of the server that will be used to authenticate requests for the "root" SMB resource (listing of all domains and workgroups).  This server is also used when a controller cannot be found for a given domain or workgroup.  If not specified, jCIFS will look for a controller for the domain specified in "jcifs.smb.client.domain" (if set).</para>
+                <para>Note that this server does not have to be a real domain controller; any server or workstation running SMB services can be used.</para>
+            </description>
+            <example-value>10.10.2.20</example-value>
+        </parameter>
+        <parameter name="enableNtlm">
+            <summary>Indicates whether NTLM authentication is offered by Davenport.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.http.enableBasic"/>
+                <related-parameter name="acceptBasic"/>
+            </related-parameters>
+            <description>
+                <para>This setting specifies whether Davenport should offer NTLM authentication to the client.  NTLM is the default authentication mechanism; by setting this to "false", NTLM will no longer be presented as a choice to clients.  This can be used in conjunction with "jcifs.http.enableBasic" to limit authentication to the HTTP Basic mechanism.  This provides the widest compatibility with clients, but can significantly reduce the security of the system if appropriate measures are not employed.</para>
+            </description>
+            <default-value>true (NTLM authentication is offered).</default-value>
+            <example-value>true</example-value>
+        </parameter>
+        <parameter name="jcifs.http.enableBasic">
+            <summary>Indicates whether HTTP Basic authentication is offered by Davenport.</summary>
+            <related-parameters>
+                <related-parameter name="enableNtlm"/>
+                <related-parameter name="acceptBasic"/>
+                <related-parameter name="jcifs.http.insecureBasic"/>
+                <related-parameter name="jcifs.http.basicRealm"/>
+            </related-parameters>
+            <description>
+                <para>This setting specifies whether Davenport should offer HTTP Basic authentication to the client.  Basic authentication can be used by clients which are not NTLM-capable, but is a much less secure authentication scheme.  By default, Davenport will only use HTTP Basic over HTTPS.</para>
+            </description>
+            <default-value>true (HTTP Basic authentication is offered over HTTPS).</default-value>
+            <example-value>true</example-value>
+        </parameter>
+        <parameter name="acceptBasic">
+            <summary>Indicates whether HTTP Basic authentication is accepted by Davenport if sent proactively by the client.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.http.enableBasic"/>
+                <related-parameter name="jcifs.http.insecureBasic"/>
+            </related-parameters>
+            <description>
+                <para>Specifies whether HTTP Basic credentials are accepted by Davenport when presented by clients.  This differs from "jcifs.http.enableBasic" in that HTTP Basic authentication will not be offered as a choice by the server; it will just accept such credentials if sent proactively by clients.  If enabled, HTTP Basic will only be accepted over secure connections (HTTPS) by default.</para>
+                <para>This setting is ignored if "jcifs.http.enableBasic" is set to "true".</para>
+            </description>
+            <default-value>false (HTTP Basic is not accepted unless offered).</default-value>
+            <example-value>false</example-value>
+        </parameter>
+        <parameter name="jcifs.http.insecureBasic">
+            <summary>Indicates whether HTTP Basic can be used over insecure (non-HTTPS) connections.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.http.enableBasic"/>
+                <related-parameter name="acceptBasic"/>
+            </related-parameters>
+            <description>
+                <para>Specifies whether Davenport is allowed to use HTTP Basic authentication over non-HTTPS connections.  Normally, Davenport will only use Basic authentication if the connection is secure; setting this to "true" will offer HTTP Basic over insecure connections as well.  This sends login information over the network unencrypted, and is a SEVERE security risk.  Enabling this is strongly discouraged.</para>
+            </description>
+            <default-value>false (HTTP Basic is not enabled over insecure HTTP).</default-value>
+            <example-value>false</example-value>
+        </parameter>
+        <parameter name="jcifs.smb.lmCompatibility">
+            <summary>Specifies the NTLM authentication level.</summary>
+            <description>
+                <para>This specifies the "LM Compatibility" level used in NTLM authentication.  This mirrors the Windows LMCompatibilityLevel registry setting ("HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\LmCompatibilityLevel").</para>
+                <para>The value of this setting should match the setting used in your network environment.</para>
+            </description>
+            <default-value>0 (use LM/NTLM authentication).</default-value>
+            <example-value>0</example-value>
+            <valid-values>
+                <valid-value>
+                    <value>0 or 1</value>
+                    <description>Use LM/NTLM authentication.</description>
+                </valid-value>
+                <valid-value>
+                    <value>2</value>
+                    <description>Use NTLM authentication only.  This eliminates the cryptographically weak LM response, and is more secure than levels 0 and 1.</description>
+                </valid-value>
+                <valid-value>
+                    <value>3, 4, or 5</value>
+                    <description>Use LMv2 authentication.  This offers a higher level of security, but is incompatible with pre-Windows NT Service Pack 4 servers.</description>
+                </valid-value>
+            </valid-values>
+            <references>
+                <reference label="How to enable NTLM 2 authentication (Microsoft Knowledge Base article)" location="http://support.microsoft.com/default.aspx?scid=KB;en-us;239869"/>
+            </references>
+        </parameter>
+        <parameter name="jcifs.http.basicRealm">
+            <summary>Specifies the realm presented during HTTP Basic authentication.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.http.enableBasic"/>
+            </related-parameters>
+            <description>
+                <para>HTTP Basic authentication presents a "realm" to identify the authentication server.  This setting specifies the realm name that is presented to clients.</para>
+            </description>
+            <default-value>Davenport</default-value>
+            <example-value>Davenport</example-value>
+        </parameter>
+        <parameter name="jcifs.smb.client.logonShare">
+            <summary>Specifies a network share to authenticate users against.</summary>
+            <description>
+                <para>jCIFS authenticates users against a network share on the server.  Normally, "IPC$" is used; by specifying a different share here, a rudimentary access control mechanism can be employed.  A user will only be able to access a server if the specified share exists on the server and is accessible to that user.</para>
+            </description>
+            <default-value>IPC$</default-value>
+            <example-value>DAVENPORT</example-value>
+        </parameter>
+        <parameter name="closeOnAuthenticate">
+            <summary>Specifies whether Davenport should close the HTTP connection when starting authentication.</summary>
+            <description>
+                <para>This setting specifies if Davenport should send the "Connection: close" HTTP header when initially responding to requests for authentication.  This is not necessary, but more closely mirrors the behavior of IIS.  Note that setting this to "true" will have an adverse impact on performance.</para>
+            </description>
+            <default-value>false (the HTTP connection remains open throughout the authentication sequence).</default-value>
+            <example-value>false</example-value>
+        </parameter>
+        <parameter name="jcifs.smb.client.disablePlainTextPasswords">
+            <summary>Prevents plain text passwords from being sent over the SMB network.</summary>
+            <description>
+                <para>This setting specifies whether plain text passwords can be sent to SMB servers.  By default, this is "true" (plain text passwords are disabled).  To connect to SMB servers which do not support encrypted passwords, this must be set to "false".  This sends login information over the network unencrypted, and is a SEVERE security risk.  Enabling plain text passwords is strongly discouraged.</para>
+            </description>
+            <default-value>true (plain text passwords are disabled).</default-value>
+            <example-value>true</example-value>
+        </parameter>
+    </parameter-class>
+    <parameter-class name="Resource Locking">
+        <description>
+            <para>These settings are used to configure WebDAV locking, which enables coordination of concurrent modifications.</para>
+        </description>
+        <parameter name="smbdav.LockManagerFactory">
+            <summary>Specifies the lock manager factory implementation class.</summary>
+            <description>
+                <para>This setting provides the classname of the lock manager factory implementation.  The specified class must extend "smbdav.LockManagerFactory" and provide a no-argument constructor.</para>
+                <para>If not specified, a default lock manager factory will be used which supports both exclusive and shared application server locks (not backed by a physical lock on the SMB resource).
+                </para>
+                <para>The parameters provided to the lock manager will be built from all servlet initialization parameters that are prefixed with "smbdav.LockManagerFactory.".  The prefix will be stripped from the parameter names before presentation to the lock manager factory instance.  For example, specifying a servlet initialization parameter "smbdav.LockManagerFactory.defaultTimeout" with a value of "300000" will pass the value to the lock manager factory as the "defaultTimeout" property.</para>
+            </description>
+            <example-value>com.foo.MyLockManagerFactory</example-value>
+            <valid-values>
+                <valid-value>
+                    <value>(empty)</value>
+                    <description>If unspecified, a lock manager factory will be used which manages locks at an application server level.</description>
+                </valid-value>
+                <valid-value>
+                    <value>smbdav.NoLockManagerFactory</value>
+                    <description>A lock manager factory which disables locking support.  Behavior will be consistent with older versions of Davenport (which did not provide locking support).</description>
+                </valid-value>
+                <valid-value>
+                    <value>smbdav.SmbLockManagerFactory</value>
+                    <description>A lock manager factory which maintains a physical lock on SMB file resources.</description>
+                </valid-value>
+                <valid-value>
+                    <value>(any valid lock manager classname)</value>
+                    <description>A custom lock manager factory can be specified.</description>
+                </valid-value>
+            </valid-values>
+        </parameter>
+        <parameter name="smbdav.LockManagerFactory.defaultTimeout">
+            <summary>Default lock timeout.</summary>
+            <related-parameters>
+                <related-parameter name="smbdav.LockManagerFactory.maximumTimeout"/>
+            </related-parameters>
+            <description>
+                <para>This corresponds to the "defaultTimeout" parameter supported by the default lock manager factory, and specifies the lock lifetime in milliseconds.  "-1" indicates locks should have an infinite lifetime (locks are only released on unlock).</para>
+            </description>
+            <default-value>-1 (locks will not expire)</default-value>
+            <example-value>-1</example-value>
+        </parameter>
+        <parameter name="smbdav.LockManagerFactory.maximumTimeout">
+            <summary>Maximum lock timeout.</summary>
+            <related-parameters>
+                <related-parameter name="smbdav.LockManagerFactory.defaultTimeout"/>
+            </related-parameters>
+            <description>
+                <para>This corresponds to the "maximumTimeout" parameter supported by the default lock manager factory, and specifies the maximum allowable lock timeout.  If a client specifies a timeout exceeding this value, this value will be used instead.  Additionally, if the default timeout exceeds this value it will be "trimmed" as well.</para>
+            </description>
+            <default-value>-1 (no maximum, infinite timeouts are permitted)</default-value>
+            <example-value>-1</example-value>
+        </parameter>
+    </parameter-class>
+    <parameter-class name="Request Filtering">
+        <description>
+            <para>These settings allow installation and configuration of pluggable filters to control access to Davenport resources.</para>
+        </description>
+        <parameter name="fileFilters">
+            <summary>Specifies a set of filter names, in the order in which they should be applied.</summary>
+            <description>
+                <para>This setting contains a whitespace-separated list of filter names in execution order.  Each filter must implement "jcifs.smb.SmbFileFilter"; if a filter additionally implements "smbdav.DavenportFileFilter", it will be initialized with a set of configuration parameters.  A resource must be accepted by all specified filters; rejection by any of the filters will result in rejection of the resource request.</para>
+                <para>There should be an additional parameter for each filter name, specifying the corresponding filter class; so if "myFilter" was declared here, you would also define a "myFilter" parameter with the filter classname given as the value (e.g., "com.foo.MyFilter").
+                </para>
+                <para>The parameters provided to each filter will be built from all servlet initialization parameters that are prefixed with the filter's name (e.g., "myFilter.*").  The prefix will be stripped from the parameter names before presentation to the filter instance; so the parameter "myFilter.someParam" will be presented to the filter as the property "someParam".</para>
+            </description>
+            <example-value>myFirstFilter mySecondFilter</example-value>
+        </parameter>
+        <parameter name="hiddenFilter">
+            <summary>Rejects hidden resources.</summary>
+            <description>
+                <para>This is a filter type which rejects hidden SMB resources (the parameter name would actually correspond to the filter name declared in the "fileFilters" parameter).  The classname for this filter is "smbdav.filters.HiddenFilter".</para>
+            </description>
+            <example>
+    <comment>declare "myHiddenFilter"</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;fileFilters&lt;/param-name&gt;
+        &lt;param-value&gt;myHiddenFilter&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    <comment>specify "smbdav.filters.HiddenFilter" as the class</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;myHiddenFilter&lt;/param-name&gt;
+        &lt;param-value&gt;smbdav.filters.HiddenFilter&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+</example>
+        </parameter>
+        <parameter name="serverFilter">
+            <summary>Permits only resources from a specific list of servers.</summary>
+            <description>
+                <para>This is a filter type which will only accept resources from a specific list of servers (the parameter name would actually correspond to the filter name declared in the "fileFilters" parameter).  The classname for this filter is "smbdav.filters.ServerFilter".</para>
+                <para>This filter accepts a "servers" property, containing a whitespace-separated list of server/workgroup names (note that parent workgroup names may need to be included if users need to browse down to the server level from the parent).  The "acceptRoot" property indicates whether this filter should accept the "smb://" resource.  If "acceptRoot" is set to false, the SMB root will not be browseable.  By default, the root is browseable ("acceptRoot" is true).
+                </para>
+                <para>This filter can be used in combination with a NotFilter to exclude specific servers.  Note that the NotFilter will inverse the logic of the "acceptRoot" parameter as well; if a NotFilter is applied, the SMB root will only be accessible if "acceptRoot" is set to false.</para>
+            </description>
+            <example>
+    <comment>declare "myServerFilter"</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;fileFilters&lt;/param-name&gt;
+        &lt;param-value&gt;myServerFilter&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    <comment>specify "smbdav.filters.ServerFilter" as the class</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;myServerFilter&lt;/param-name&gt;
+        &lt;param-value&gt;smbdav.filters.ServerFilter&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    <comment>specify the server list</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;myServerFilter.servers&lt;/param-name&gt;
+        &lt;param-value&gt;MYSERVER OTHERSERVER WORKGROUP&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    <comment>prohibit browsing of the root</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;myServerFilter.acceptRoot&lt;/param-name&gt;
+        &lt;param-value&gt;false&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+</example>
+        </parameter>
+        <parameter name="andFilter">
+            <summary>Chains multiple filters together using "AND" logic.</summary>
+            <description>
+                <para>This is a filter type which chains together one or more underlying filters (the parameter name would actually correspond to the filter name declared in the "fileFilters" parameter).  A resource will be accepted by this filter only if all subfilters accept the resource.  The classname for this filter is "smbdav.filters.AndFilter".</para>
+                <para>This filter accepts a "fileFilters" parameter containing a whitespace-separated list of subfilter names (in the same format as the global "fileFilters" parameter).  An additional parameter would be passed to this filter for each declared subfilter, specifying the classname of the underlying filter.</para>
+                <para>Parameters can be specified for subfilters by prefixing the parameter name with the name of the subfilter.  For example, if this filter is named "myAndFilter", and has a subfilter named "mySubFilter", a property "subProperty" can be passed by declaring a servlet parameter "myAndFilter.mySubFilter.subProperty".</para>
+            </description>
+            <example>
+    <comment>declare "myAndFilter"</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;fileFilters&lt;/param-name&gt;
+        &lt;param-value&gt;myAndFilter&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    <comment>specify "smbdav.filters.AndFilter" as the class</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;myAndFilter&lt;/param-name&gt;
+        &lt;param-value&gt;smbdav.filters.AndFilter&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    <comment>declare two subfilters</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;myAndFilter.fileFilters&lt;/param-name&gt;
+        &lt;param-value&gt;mySubFilter1 mySubFilter2&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    <comment>specify the subfilter classes</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;myAndFilter.mySubFilter1&lt;/param-name&gt;
+        &lt;param-value&gt;com.foo.MyFilter&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    &lt;init-param&gt;
+        &lt;param-name&gt;myAndFilter.mySubFilter2&lt;/param-name&gt;
+        &lt;param-value&gt;com.foo.MyOtherFilter&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    <comment>pass the property "subProperty" to mySubFilter1</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;myAndFilter.mySubFilter1.subProperty&lt;/param-name&gt;
+        &lt;param-value&gt;subValue&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+</example>
+        </parameter>
+        <parameter name="orFilter">
+            <summary>Chains multiple filters together using "OR" logic.</summary>
+            <description>
+                <para>This is a filter type which chains together one or more underlying filters (the parameter name would actually correspond to the filter name declared in the "fileFilters" parameter).  A resource will be accepted by this filter if any subfilter accepts the resource.  The classname for this filter is "smbdav.filters.OrFilter".</para>
+                <para>This filter accepts a "fileFilters" parameter containing a whitespace-separated list of subfilter names (in the same format as the global "fileFilters" parameter).  An additional parameter would be passed to this filter for each declared subfilter, specifying the classname of the underlying filter.</para>
+                <para>Parameters can be specified for subfilters by prefixing the parameter name with the name of the subfilter.  For example, if this filter is named "myOrFilter", and has a subfilter named "mySubFilter", a property "subProperty" can be passed by declaring a servlet parameter "myOrFilter.mySubFilter.subProperty".</para>
+            </description>
+            <example>
+    <comment>declare "myOrFilter"</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;fileFilters&lt;/param-name&gt;
+        &lt;param-value&gt;myOrFilter&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    <comment>specify "smbdav.filters.OrFilter" as the class</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;myOrFilter&lt;/param-name&gt;
+        &lt;param-value&gt;smbdav.filters.OrFilter&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    <comment>declare two subfilters</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;myOrFilter.fileFilters&lt;/param-name&gt;
+        &lt;param-value&gt;mySubFilter1 mySubFilter2&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    <comment>specify the subfilter classes</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;myOrFilter.mySubFilter1&lt;/param-name&gt;
+        &lt;param-value&gt;com.foo.MyFilter&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    &lt;init-param&gt;
+        &lt;param-name&gt;myOrFilter.mySubFilter2&lt;/param-name&gt;
+        &lt;param-value&gt;com.foo.MyOtherFilter&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    <comment>pass the property "subProperty" to mySubFilter1</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;myOrFilter.mySubFilter1.subProperty&lt;/param-name&gt;
+        &lt;param-value&gt;subValue&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+</example>
+        </parameter>
+        <parameter name="notFilter">
+            <summary>Inverts the result of a subfilter.</summary>
+            <description>
+                <para>This is a filter type which inverts the result of an underlying filter (the parameter name would actually correspond to the filter name declared in the "fileFilters" parameter).  A resource will be accepted by this filter only if the subfilter rejects the resource.  The classname for this filter is "smbdav.filters.NotFilter".</para>
+                <para>This filter accepts a "filter" parameter containing the subfilter's classname.  Any other parameters specified for this filter will be passed to the subfilter.</para>
+            </description>
+            <example>
+    <comment>declare "myNotFilter"</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;fileFilters&lt;/param-name&gt;
+        &lt;param-value&gt;myNotFilter&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    <comment>specify "smbdav.filters.NotFilter" as the class</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;myNotFilter&lt;/param-name&gt;
+        &lt;param-value&gt;smbdav.filters.NotFilter&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    <comment>specify the subfilter class</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;myNotFilter.filter&lt;/param-name&gt;
+        &lt;param-value&gt;com.foo.MyFilter&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+    <comment>pass the property "subProperty" to the subfilter</comment>
+    &lt;init-param&gt;
+        &lt;param-name&gt;myNotFilter.subProperty&lt;/param-name&gt;
+        &lt;param-value&gt;subValue&lt;/param-value&gt; 
+    &lt;/init-param&gt;
+</example>
+        </parameter>
+    </parameter-class>
+    <parameter-class name="Error Handling">
+        <description>
+            <para>These settings configure how Davenport handles errors encountered during operation.</para>
+        </description>
+        <parameter name="errorHandlers">
+            <summary>Specifies a list of error handling classes.</summary>
+            <description>
+                <para>This setting contains a whitespace-separated list of classnames, each of which represents an error handling class (implementing the "smbdav.ErrorHandler" interface).  Each handler will be invoked in the order declared to process any errors thrown by Davenport method handlers.</para>
+                <para>If no error handlers are specified, Davenport will install "smbdav.DefaultAuthErrorHandler" and "smbdav.DefaultIOErrorHandler" (in that order).  If you install a custom error handler, these may need to be added to the chain explicitly.</para>
+            </description>
+            <default-value>smbdav.DefaultAuthErrorHandler smbdav.DefaultIOErrorHandler</default-value>
+            <example-value>smbdav.DefaultAuthErrorHandler smbdav.DefaultIOErrorHandler</example-value>
+        </parameter>
+        <parameter name="errorHandler.authenticationFailureBehavior">
+            <summary>Specifies how Davenport's default error handler should behave when authentication to an underlying resource fails.</summary>
+            <description>
+                <para>This setting controls the behavior presented to the client when an authentication-related error is encountered.</para>
+            </description>
+            <default-value>authenticate (a 401 (Unauthorized) status will be sent, and new credentials will be requested).</default-value>
+            <example-value>authenticate</example-value>
+            <valid-values>
+                <valid-value>
+                    <value>authenticate</value>
+                    <description>The request fails with an HTTP 401 (Unauthorized) status, and new credentials are requested from the user.</description>
+                </valid-value>
+                <valid-value>
+                    <value>unauthorized</value>
+                    <description>The request fails with an HTTP 401 (Unauthorized) status, but no authentication is requested.</description>
+                </valid-value>
+                <valid-value>
+                    <value>forbidden</value>
+                    <description>The request fails with an HTTP 403 (Forbidden) status.</description>
+                </valid-value>
+                <valid-value>
+                    <value>notfound</value>
+                    <description>The request fails with an HTTP 404 (Not Found) status.</description>
+                </valid-value>
+                <valid-value>
+                    <value>ignore</value>
+                    <description>The error is ignored, and an HTTP 200 (Success) status is returned.  This does not allow access to the resource; it simply returns an empty response body with a success status.</description>
+                </valid-value>
+            </valid-values>
+        </parameter>
+        <parameter name="errorHandler.ioFailureBehavior">
+            <summary>Specifies how Davenport's default error handler should behave when an IO exception is encountered.</summary>
+            <description>
+                <para>This setting controls the behavior presented to the client when an IO exception is encountered.</para>
+            </description>
+            <default-value>servererror (a 500 (Internal Server Error) status will be sent).</default-value>
+            <example-value>servererror</example-value>
+            <valid-values>
+                <valid-value>
+                    <value>servererror</value>
+                    <description>The request fails with an HTTP 500 (Internal Server Error) status.</description>
+                </valid-value>
+                <valid-value>
+                    <value>notfound</value>
+                    <description>The request fails with an HTTP 404 (Not Found) status.</description>
+                </valid-value>
+                <valid-value>
+                    <value>gone</value>
+                    <description>The request fails with an HTTP 410 (Gone) status.</description>
+                </valid-value>
+                <valid-value>
+                    <value>ignore</value>
+                    <description>The error is ignored, and an HTTP 200 (Success) status is returned.  This does not resolve the error; it simply returns an empty response body with a success status.</description>
+                </valid-value>
+            </valid-values>
+        </parameter>
+        <parameter name="errorHandler.sendError">
+            <summary>Indicates how Davenport's default error handlers should relay an error status.</summary>
+            <description>
+                <para>This setting controls the approach Davenport uses to relay error statuses to the container.  Setting this to "true" indicates that Davenport should use the HttpServletResponse.sendError method to signal the error to the container.  "false" indicates HttpServletResponse.setStatus/flushBuffer should be used instead.</para>
+                <para>The actual behavior exhibited is container-specific; typically "true" will present an error page to the client and close the HTTP connection (more desirable for web browsers, as it gives a visual indication of the error).  "false" will typically present an empty response body and keep the connection alive (more desirable for WebDAV clients, as they would not see the response body anyway).</para>
+            </description>
+            <default-value>true (use HttpServletResponse.sendError).</default-value>
+            <example-value>true</example-value>
+        </parameter>
+    </parameter-class>
+    <parameter-class name="Logging">
+        <description>
+            <para>These settings configure Davenport application logging.</para>
+        </description>
+        <parameter name="smbdav.Log">
+            <summary>Specifies the logging implementation classname.</summary>
+            <description>
+                <para>This setting provides the classname of the logging implementation.  The specified class must extend "smbdav.Log" and provide a no-argument constructor.</para>
+                <para>If not specified, a default logger will be used which logs to System.out and System.err.</para>
+            </description>
+            <example-value>com.foo.MyLogger</example-value>
+        </parameter>
+        <parameter name="smbdav.Log.threshold">
+            <summary>Specifies the logging threshold.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.util.loglevel"/>
+            </related-parameters>
+            <description>
+                <para>This configures the threshold level for logging events.  Levels are cumulative; for example, specifying "WARNING" will log warnings, errors, and critical errors.</para>
+            </description>
+            <default-value>CRITICAL (only critical errors are logged).</default-value>
+            <example-value>CRITICAL</example-value>
+            <valid-values>
+                <valid-value>
+                    <value>NOTHING</value>
+                    <description>Nothing is logged.</description>
+                </valid-value>
+                <valid-value>
+                    <value>CRITICAL</value>
+                    <description>Critical errors are logged.</description>
+                </valid-value>
+                <valid-value>
+                    <value>ERROR</value>
+                    <description>Errors are logged.</description>
+                </valid-value>
+                <valid-value>
+                    <value>WARNING</value>
+                    <description>Warnings are logged.</description>
+                </valid-value>
+                <valid-value>
+                    <value>INFORMATION</value>
+                    <description>Informational messages are logged.</description>
+                </valid-value>
+                <valid-value>
+                    <value>DEBUG</value>
+                    <description>Debug messages are logged.</description>
+                </valid-value>
+            </valid-values>
+        </parameter>
+        <parameter name="jcifs.util.loglevel">
+            <summary>Specifies the logging threshold for the jCIFS library.</summary>
+            <related-parameters>
+                <related-parameter name="smbdav.Log.threshold"/>
+            </related-parameters>
+            <description>
+                <para>This setting specifies the threshold for messages logged by the jCIFS library.  Levels are cumulative; for example, specifying "2" will log messages for level 1 as well.</para>
+            </description>
+            <default-value>1 (only critical messages are logged).</default-value>
+            <example-value>1</example-value>
+            <valid-values>
+                <valid-value>
+                    <value>0</value>
+                    <description>No log messages are printed.</description>
+                </valid-value>
+                <valid-value>
+                    <value>1</value>
+                    <description>Only critical messages are logged.</description>
+                </valid-value>
+                <valid-value>
+                    <value>2</value>
+                    <description>More verbose log messages, suitable for logging while under load.</description>
+                </valid-value>
+                <valid-value>
+                    <value>3</value>
+                    <description>Almost everything.</description>
+                </valid-value>
+                <valid-value>
+                    <value>N</value>
+                    <description>Debugging only.</description>
+                </valid-value>
+            </valid-values>
+        </parameter>
+    </parameter-class>
+    <parameter-class name="Miscellaneous Davenport Settings">
+        <description>
+            <para>These are various configuration settings specific to the Davenport application.</para>
+        </description>
+        <parameter name="request-uri.charset">
+            <summary>Specifies the character set used to interpret request URIs.</summary>
+            <description>
+                <para>When a request contains characters outside the 7-bit ASCII set, Davenport must interpret them according to a selected character set.  Most clients will use UTF-8 to request such resources; some versions of Windows' Web Folders client notably vary from this.  If the request does not match a resource with this character set, Davenport will re-attempt using UTF-8.</para>
+            </description>
+            <default-value>ISO-8859-1</default-value>
+            <example-value>ISO-8859-1</example-value>
+            <references>
+                <reference label="Supported Java Encodings" location="http://java.sun.com/j2se/1.3/docs/guide/intl/encoding.doc.html"/>
+            </references>
+        </parameter>
+        <parameter name="maximumXmlRequest">
+            <summary>Specifies the maximum allowable size for an XML request sent by the client.</summary>
+            <description>
+                <para>This specifies the maximum size of an XML request document in bytes.  When processing XML-based requests (such as LOCK or PROPFIND), Davenport uses this parameter to control the amount of data that will be accepted from the client.  This protects against certain XML-based denial of service attacks, in which the client sends a very large request in an attempt to consume all available server resources.</para>
+            </description>
+            <default-value>20000 (about 20 kilobytes).</default-value>
+            <example-value>20000</example-value>
+        </parameter>
+        <parameter name="contextBase">
+            <summary>Specifies a base HTTP context to apply to URIs within Davenport.</summary>
+            <related-parameters>
+                <related-parameter name="contextBaseHeader"/>
+            </related-parameters>
+            <description>
+                <para>This setting specifies a base context for URL rewriting, used to deploy Davenport in a reverse proxying scenario.  Davenport will rewrite URLs relative to the supplied URL context.
+                </para>
+            </description>
+            <example-value>https://proxy/base/</example-value>
+        </parameter>
+        <parameter name="contextBaseHeader">
+            <summary>Indicates the name of an HTTP header containing a context base to apply to URIs within Davenport.</summary>
+            <related-parameters>
+                <related-parameter name="contextBase"/>
+            </related-parameters>
+            <description>
+                <para>This specifies an HTTP header that will provide Davenport with a context base for URL rewriting.  If the request carries this header, the value will be used as the rewriting context, overriding any value specified in the "contextBase" parameter.  If the header is not present, th value in the "contextBase" parameter will be used (if available).</para>
+            </description>
+            <example-value>Davenport-Base</example-value>
+        </parameter>
+        <parameter name="directory.xsl">
+            <summary>Provides the location of the default directory view stylesheet.</summary>
+            <description>
+                <para>This setting specifies the location of the XSL stylesheet used to present the directory view.  This stylesheet transforms the PROPFIND XML response into the HTML presented to browsers viewing a directory listing.</para>
+            </description>
+            <default-value>/META-INF/directory.xsl (loads a default stylesheet from the Davenport jarfile).</default-value>
+            <example-value>/META-INF/directory.xsl</example-value>
+            <valid-values>
+                <valid-value>
+                    <value>/META-INF/directory.xsl</value>
+                    <description>The "standard" Davenport look and feel.</description>
+                </valid-value>
+                <valid-value>
+                    <value>/META-INF/dos.xsl</value>
+                    <description>The DOS look and feel.</description>
+                </valid-value>
+                <valid-value>
+                    <value>(any valid stylesheet location)</value>
+                    <description>A custom stylesheet can be specified.  See the class documentation for "smbdav.DefaultGetHandler" for details.</description>
+                </valid-value>
+            </valid-values>
+        </parameter>
+        <parameter name="directory.configuration">
+            <summary>Provides the location of the directory view configuration page.</summary>
+            <description>
+                <para>This setting specifies the location of the configuration page for the directory view.  Users can configure preferred stylesheets by pointing their browsers at any Davenport collection resource (such as a server, workgroup, or even the root) and passing "configure" as a URL parameter:</para>
+                <para>http://server/davenport/any/?configure</para>
+                <para>The location of the configuration page that is loaded can be specified here.</para>
+            </description>
+            <default-value>/META-INF/configuration.html (loads a default configuration page from the Davenport jarfile).</default-value>
+            <example-value>/META-INF/configuration.html</example-value>
+        </parameter>
+        <parameter name="handler.COPY">
+            <summary>Specifies the default handler for the COPY method.</summary>
+            <description>
+                <para>This specifies the name of the class that will handle requests using the COPY method.  The specified class must at a minimum implement "smbdav.MethodHandler" and provide a no-argument constructor; it is highly recommended that it also extend "smbdav.AbstractHandler".</para>
+            </description>
+            <default-value>smbdav.DefaultCopyHandler</default-value>
+            <example-value>smbdav.DefaultCopyHandler</example-value>
+        </parameter>
+        <parameter name="handler.DELETE">
+            <summary>Specifies the default handler for the DELETE method.</summary>
+            <description>
+                <para>This specifies the name of the class that will handle requests using the DELETE method.  The specified class must at a minimum implement "smbdav.MethodHandler" and provide a no-argument constructor; it is highly recommended that it also extend "smbdav.AbstractHandler".</para>
+            </description>
+            <default-value>smbdav.DefaultDeleteHandler</default-value>
+            <example-value>smbdav.DefaultDeleteHandler</example-value>
+        </parameter>
+        <parameter name="handler.GET">
+            <summary>Specifies the default handler for the GET method.</summary>
+            <description>
+                <para>This specifies the name of the class that will handle requests using the GET method.  The specified class must at a minimum implement "smbdav.MethodHandler" and provide a no-argument constructor; it is highly recommended that it also extend "smbdav.AbstractHandler".</para>
+            </description>
+            <default-value>smbdav.DefaultGetHandler</default-value>
+            <example-value>smbdav.DefaultGetHandler</example-value>
+        </parameter>
+        <parameter name="handler.HEAD">
+            <summary>Specifies the default handler for the HEAD method.</summary>
+            <description>
+                <para>This specifies the name of the class that will handle requests using the HEAD method.  The specified class must at a minimum implement "smbdav.MethodHandler" and provide a no-argument constructor; it is highly recommended that it also extend "smbdav.AbstractHandler".</para>
+            </description>
+            <default-value>smbdav.DefaultHeadHandler</default-value>
+            <example-value>smbdav.DefaultHeadHandler</example-value>
+        </parameter>
+        <parameter name="handler.LOCK">
+            <summary>Specifies the default handler for the LOCK method.</summary>
+            <description>
+                <para>This specifies the name of the class that will handle requests using the LOCK method.  The specified class must at a minimum implement "smbdav.MethodHandler" and provide a no-argument constructor; it is highly recommended that it also extend "smbdav.AbstractHandler".</para>
+            </description>
+            <default-value>smbdav.DefaultLockHandler</default-value>
+            <example-value>smbdav.DefaultLockHandler</example-value>
+        </parameter>
+        <parameter name="handler.MKCOL">
+            <summary>Specifies the default handler for the MKCOL method.</summary>
+            <description>
+                <para>This specifies the name of the class that will handle requests using the MKCOL method.  The specified class must at a minimum implement "smbdav.MethodHandler" and provide a no-argument constructor; it is highly recommended that it also extend "smbdav.AbstractHandler".</para>
+            </description>
+            <default-value>smbdav.DefaultMkcolHandler</default-value>
+            <example-value>smbdav.DefaultMkcolHandler</example-value>
+        </parameter>
+        <parameter name="handler.MOVE">
+            <summary>Specifies the default handler for the MOVE method.</summary>
+            <description>
+                <para>This specifies the name of the class that will handle requests using the MOVE method.  The specified class must at a minimum implement "smbdav.MethodHandler" and provide a no-argument constructor; it is highly recommended that it also extend "smbdav.AbstractHandler".</para>
+            </description>
+            <default-value>smbdav.DefaultMoveHandler</default-value>
+            <example-value>smbdav.DefaultMoveHandler</example-value>
+        </parameter>
+        <parameter name="handler.OPTIONS">
+            <summary>Specifies the default handler for the OPTIONS method.</summary>
+            <description>
+                <para>This specifies the name of the class that will handle requests using the OPTIONS method.  The specified class must at a minimum implement "smbdav.MethodHandler" and provide a no-argument constructor; it is highly recommended that it also extend "smbdav.AbstractHandler".</para>
+            </description>
+            <default-value>smbdav.DefaultOptionsHandler</default-value>
+            <example-value>smbdav.DefaultOptionsHandler</example-value>
+        </parameter>
+        <parameter name="handler.POST">
+            <summary>Specifies the default handler for the POST method.</summary>
+            <description>
+                <para>This specifies the name of the class that will handle requests using the POST method.  The specified class must at a minimum implement "smbdav.MethodHandler" and provide a no-argument constructor; it is highly recommended that it also extend "smbdav.AbstractHandler".</para>
+            </description>
+            <default-value>smbdav.DefaultPostHandler</default-value>
+            <example-value>smbdav.DefaultPostHandler</example-value>
+        </parameter>
+        <parameter name="handler.PROPFIND">
+            <summary>Specifies the default handler for the PROPFIND method.</summary>
+            <description>
+                <para>This specifies the name of the class that will handle requests using the PROPFIND method.  The specified class must at a minimum implement "smbdav.MethodHandler" and provide a no-argument constructor; it is highly recommended that it also extend "smbdav.AbstractHandler".</para>
+            </description>
+            <default-value>smbdav.DefaultPropfindHandler</default-value>
+            <example-value>smbdav.DefaultPropfindHandler</example-value>
+        </parameter>
+        <parameter name="handler.PROPPATCH">
+            <summary>Specifies the default handler for the PROPPATCH method.</summary>
+            <description>
+                <para>This specifies the name of the class that will handle requests using the PROPPATCH method.  The specified class must at a minimum implement "smbdav.MethodHandler" and provide a no-argument constructor; it is highly recommended that it also extend "smbdav.AbstractHandler".</para>
+            </description>
+            <default-value>smbdav.DefaultProppatchHandler</default-value>
+            <example-value>smbdav.DefaultProppatchHandler</example-value>
+        </parameter>
+        <parameter name="handler.PUT">
+            <summary>Specifies the default handler for the PUT method.</summary>
+            <description>
+                <para>This specifies the name of the class that will handle requests using the PUT method.  The specified class must at a minimum implement "smbdav.MethodHandler" and provide a no-argument constructor; it is highly recommended that it also extend "smbdav.AbstractHandler".</para>
+            </description>
+            <default-value>smbdav.DefaultPutHandler</default-value>
+            <example-value>smbdav.DefaultPutHandler</example-value>
+        </parameter>
+        <parameter name="handler.UNLOCK">
+            <summary>Specifies the default handler for the UNLOCK method.</summary>
+            <description>
+                <para>This specifies the name of the class that will handle requests using the UNLOCK method.  The specified class must at a minimum implement "smbdav.MethodHandler" and provide a no-argument constructor; it is highly recommended that it also extend "smbdav.AbstractHandler".</para>
+            </description>
+            <default-value>smbdav.DefaultUnlockHandler</default-value>
+            <example-value>smbdav.DefaultUnlockHandler</example-value>
+        </parameter>
+    </parameter-class>
+    <parameter-class name="Miscellaneous jCIFS Settings">
+        <description>
+            <para>These settings are used to configure jCIFS (the Java library used by Davenport to access SMB resources).</para>
+            <para>This document describes jCIFS properties which are most directly related to Davenport; for a complete reference on jCIFS configuration and usage, visit the jCIFS web site.</para>
+        </description>
+        <references>
+            <reference label="The jCIFS Homepage" location="http://jcifs.samba.org/"/>
+            <reference label="jCIFS Properties Documentation" location="http://jcifs.samba.org/src/docs/overview.html"/>
+        </references>
+        <parameter name="jcifs.netbios.wins" importance="high">
+            <summary>Specifies the IP addresses of one or more WINS servers.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.resolveOrder"/>
+            </related-parameters>
+            <description>
+                <para>This setting specifies the WINS servers Davenport will use to locate resources on the network.  This can be either a single IP address, or a comma-separated list of IP addresses (specifying backup WINS servers).</para>
+                <para>WINS is a service which maps NetBIOS computer names to IP addresses (roughly analogous to DNS).  Without a WINS server, jCIFS and Davenport can only resolve NetBIOS names on the local subnet, which can have an adverse affect on browsing with Davenport.</para>
+            </description>
+            <example-value>10.10.2.20,10.10.2.21</example-value>
+        </parameter>
+        <parameter name="jcifs.resolveOrder">
+            <summary>Specifies the order in which jCIFS will resolve network names.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.netbios.wins"/>
+                <related-parameter name="jcifs.netbios.lmhosts"/>
+            </related-parameters>
+            <description>
+                <para>jCIFS can use several methods to resolve names on the network; this setting contains a comma-separated list specifying which methods will be used, and in what order.</para>
+            </description>
+            <default-value>LMHOSTS,WINS,BCAST,DNS</default-value>
+            <example-value>LMHOSTS,WINS,BCAST,DNS</example-value>
+            <valid-values>
+                <valid-value>
+                    <value>LMHOSTS</value>
+                    <description>jCIFS will read the "LMHOSTS" file specified in "jcifs.netbios.lmhosts".</description>
+                </valid-value>
+                <valid-value>
+                    <value>WINS</value>
+                    <description>jCIFS will look up names using the WINS server(s) specified in "jcifs.netbios.wins".</description>
+                </valid-value>
+                <valid-value>
+                    <value>BCAST</value>
+                    <description>jCIFS will broadcast NetBIOS name queries to find names on the local subnet (the broadcast address can be configured via the "jcifs.netbios.baddr" parameter).</description>
+                </valid-value>
+                <valid-value>
+                    <value>DNS</value>
+                    <description>jCIFS will use DNS to resolve the name.</description>
+                </valid-value>
+            </valid-values>
+            <references>
+                <reference label="jCIFS Name Resolution" location="http://jcifs.samba.org/src/docs/resolver.html"/>
+            </references>
+        </parameter>
+        <parameter name="jcifs.netbios.baddr">
+            <summary>The local network's broadcast address.</summary>
+            <description>
+                <para>This setting specifies the network broadcast address.  This would need to be set if the default of "255.255.255.255" does not work with your specific network configuration.</para>
+            </description>
+            <default-value>255.255.255.255</default-value>
+            <example-value>255.255.255.255</example-value>
+        </parameter>
+        <parameter name="jcifs.netbios.scope">
+            <summary>The NetBIOS scope ID.</summary>
+            <description>
+                <para>This specifies the NetBIOS scope ID, which partitions a group of computers on the network.  This is rarely used, but will need to be set if employed in your network.</para>
+            </description>
+            <example-value>EXAMPLE.COM</example-value>
+        </parameter>
+        <parameter name="jcifs.smb.client.laddr">
+            <summary>The local network interface used by jCIFS for SMB connections.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.netbios.laddr"/>
+            </related-parameters>
+            <description>
+                <para>This setting specifies which local interface jCIFS should use when making SMB connections to remote servers.  This may need to be set if the local machine has multiple network interfaces.</para>
+            </description>
+            <example-value>10.10.2.20</example-value>
+        </parameter>
+        <parameter name="jcifs.netbios.laddr">
+            <summary>The local network interface used by jCIFS for name queries.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.smb.client.laddr"/>
+            </related-parameters>
+            <description>
+                <para>This setting specifies which local interface jCIFS should use when sending NetBIOS name queries.  This may need to be set if the local machine has multiple network interfaces.</para>
+            </description>
+            <example-value>10.10.2.20</example-value>
+        </parameter>
+        <parameter name="jcifs.netbios.lmhosts">
+            <summary>The location of an LMHOSTS file mapping IP addresses to NetBIOS hostnames.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.resolveOrder"/>
+            </related-parameters>
+            <description>
+                <para>This setting specifies the location of an LMHOSTS file.  This file can be used to provide static mappings of IP addresses to NetBIOS hostnames.</para>
+            </description>
+            <example-value>C:\Windows\System32\Drivers\Etc\LMHOSTS</example-value>
+            <references>
+                <reference label="How to Write an LMHOSTS File for Domain Validation and Other Name Resolution Issues (Microsoft Knowledge Base article)" location="http://support.microsoft.com/default.aspx?scid=kb;en-us;180094"/>
+                <reference label="jCIFS Name Resolution" location="http://jcifs.samba.org/src/docs/resolver.html"/>
+            </references>
+        </parameter>
+        <parameter name="jcifs.smb.client.attrExpirationPeriod">
+            <summary>Specifies the caching period for SMB resource attributes.</summary>
+            <description>
+                <para>This setting specifies how long jCIFS caches attributes for SMB resources in milliseconds.  Setting this to a lower value can improve the accuracy of attribute values, but increases the SMB traffic (as the resource must be queried more frequently).  Davenport sets this to "60000" by default (60 seconds).</para>
+            </description>
+            <default-value>60000 (SMB attributes are cached for 60 seconds).</default-value>
+            <example-value>60000</example-value>
+        </parameter>
+        <parameter name="jcifs.smb.client.responseTimeout">
+            <summary>Specifies how long jCIFS will wait for a reply from the server.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.smb.client.soTimeout"/>
+            </related-parameters>
+            <description>
+                <para>This setting controls how long jCIFS will wait for a response after sending a request to the server in milliseconds.</para>
+            </description>
+            <default-value>10000 (10 seconds).</default-value>
+            <example-value>10000</example-value>
+        </parameter>
+        <parameter name="jcifs.smb.client.soTimeout">
+            <summary>Specifies how long jCIFS will wait before closing an inactive connection.</summary>
+            <related-parameters>
+                <related-parameter name="jcifs.smb.client.responseTimeout"/>
+            </related-parameters>
+            <description>
+                <para>This specifies the number of milliseconds jCIFS will leave an inactive connection open.  If no traffic is sent over the connection within the specified time, it will be closed to release server resources.  Davenport sets this to "300000" by default (5 minutes).</para>
+            </description>
+            <default-value>300000 (5 minutes).</default-value>
+            <example-value>300000</example-value>
+        </parameter>
+        <parameter name="jcifs.netbios.cachePolicy">
+            <summary>Specifies the caching period for NetBIOS name.</summary>
+            <description>
+                <para>This setting specifies how long NetBIOS name resolution results will be cached in seconds.  Subsequent name queries within the specified period will receive the cached results to reduce redundant queries over the networ.</para>
+            </description>
+            <default-value>600 (10 minutes).</default-value>
+            <example-value>600</example-value>
+        </parameter>
+        <parameter name="jcifs.netbios.hostname">
+            <summary>The NetBIOS name used by jCIFS.</summary>
+            <description>
+                <para>This specifies the NetBIOS name that jCIFS presents to servers.</para>
+            </description>
+            <default-value>Random (a name will be dynamically generated by jCIFS).</default-value>
+            <example-value>MYHOST</example-value>
+        </parameter>
+        <parameter name="jcifs.encoding">
+            <summary>The character encoding used by jCIFS.</summary>
+            <description>
+                <para>This setting specifies the character set encoding used by jCIFS to encode and decode strings.  This should match the character set used by SMB servers.</para>
+            </description>
+            <default-value>Environment-Specific (defaults to the value of the "file.encoding" System property).</default-value>
+            <example-value>Cp1252</example-value>
+            <references>
+                <reference label="Supported Java Encodings" location="http://java.sun.com/j2se/1.3/docs/guide/intl/encoding.doc.html"/>
+            </references>
+        </parameter>
+    </parameter-class>
+</config>
+

@@ -1,14 +1,16 @@
 INTERNET-DRAFT                                     Christopher R. Hertel
-draft-crhertel-smb-url-06.txt                                 Samba Team
-Expires July 8, 2004                                     January 8, 2004
+draft-crhertel-smb-url-07.txt                                 Samba Team
+Expires January 8, 2005                                     July 8, 2004
 
 
                       SMB File Sharing URI Scheme
 
 Status of this Memo
 
-   This document is an Internet-Draft and is in full conformance with
-   all provisions of Section 10 of RFC2026.
+   By submitting this Internet-Draft, I certify that any applicable
+   patent or other IPR claims of which I am aware have been disclosed,
+   or will be disclosed, and any of which I become aware will be
+   disclosed, in accordance with RFC 3668.
 
    Internet-Drafts are working documents of the Internet Engineering
    Task Force (IETF), its areas, and its working groups.  Note that
@@ -18,10 +20,10 @@ Status of this Memo
    Internet-Drafts are draft documents valid for a maximum of six months
    and may be updated, replaced, or obsoleted by other documents at any
    time.  It is inappropriate to use Internet-Drafts as reference
-   material or to cite them other than as "work in progress."
+   material or to cite them other than a "work in progress."
 
    The list of current Internet-Drafts can be accessed at
-   http://www.ietf.org/ietf/1id-abstracts.txt
+   http://www.ietf.org/1id-abstracts.html
 
    The list of Internet-Draft Shadow Directories can be accessed at
    http://www.ietf.org/shadow.html
@@ -36,10 +38,10 @@ Abstract
 
    The Server Message Block (SMB) protocol is one of the most widely
    used network file system protocols in existence.  This document
-   describes a format for an SMB Uniform Resource Indicator (SMB URI).
+   describes the format of the SMB Uniform Resource Indicator (SMB URI).
    The SMB URI can be used to indicate SMB workgroups, servers, shares,
-   files, inter-process communications pipes, print queues, and devices;
-   the objects in the SMB network file system space.
+   directories, files, inter-process communications pipes, print queues,
+   and devices;  the objects in the SMB network file system space.
 
 
 
@@ -52,73 +54,89 @@ Abstract
 
 
 
-
-
-Hertel                    Expires July 8, 2004                  [Page 1]
+Hertel                 Expires January 8, 2005                  [Page 1]
 
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
 
 Table of Contents
 
-1. Introduction. . . . . . . . . . . . . . . . . . . . . . . . . . . . 2
+1. Introduction. . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
    1.1. Purpose. . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
-2. Working with NBT Transport. . . . . . . . . . . . . . . . . . . . . 3
-   2.1. The NetBIOS Name Service . . . . . . . . . . . . . . . . . . . 3
+2. NBT Transport Semantics . . . . . . . . . . . . . . . . . . . . . . 4
+   2.1. The NetBIOS Name Service . . . . . . . . . . . . . . . . . . . 4
    2.2. The NetBIOS Datagram Service . . . . . . . . . . . . . . . . . 4
    2.3. The NetBIOS Session Service. . . . . . . . . . . . . . . . . . 4
-   2.4. Accommodating NBT in the SMB URI . . . . . . . . . . . . . . . 4
-3. Accessing NBT Workgroup Information . . . . . . . . . . . . . . . . 5
-4. SMB File Sharing Hierarchy. . . . . . . . . . . . . . . . . . . . . 6
-5. SMB URI Definition. . . . . . . . . . . . . . . . . . . . . . . . . 7
-6. SMB URI Syntax Elements . . . . . . . . . . . . . . . . . . . . . . 8
-   6.1. scheme . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
-   6.2. smb_service. . . . . . . . . . . . . . . . . . . . . . . . . . 8
-   6.3. auth_domain. . . . . . . . . . . . . . . . . . . . . . . . . . 9
-   6.4. smb_srv_name . . . . . . . . . . . . . . . . . . . . . . . . . 9
-   6.5. port . . . . . . . . . . . . . . . . . . . . . . . . . . . . .10
-   6.6. scope_id . . . . . . . . . . . . . . . . . . . . . . . . . . .10
+   2.4  Accommodating NBT in the SMB URI . . . . . . . . . . . . . . . 5
+3. NetBIOS-Based Workgroups. . . . . . . . . . . . . . . . . . . . . . 5
+4. SMB URI Scheme Overview . . . . . . . . . . . . . . . . . . . . . . 6
+5. SMB URI Definition. . . . . . . . . . . . . . . . . . . . . . . . . 8
+6. SMB URI Syntax Elements . . . . . . . . . . . . . . . . . . . . . . 9
+   6.1. scheme . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+   6.2. smb_service. . . . . . . . . . . . . . . . . . . . . . . . . . 9
+   6.3. auth_domain. . . . . . . . . . . . . . . . . . . . . . . . . .10
+   6.4. smb_srv_name . . . . . . . . . . . . . . . . . . . . . . . . .10
+   6.5. port . . . . . . . . . . . . . . . . . . . . . . . . . . . . .11
+   6.6. scope_id . . . . . . . . . . . . . . . . . . . . . . . . . . .11
    6.7. nbt_context. . . . . . . . . . . . . . . . . . . . . . . . . .11
-7. The Relationship Between the SMB URI and the UNC Format . . . . . .13
-8. Authentication and Security Considerations. . . . . . . . . . . . .13
-9. Character Encoding Issues . . . . . . . . . . . . . . . . . . . . .14
-10. Acknowledgments. . . . . . . . . . . . . . . . . . . . . . . . . .14
-11. References . . . . . . . . . . . . . . . . . . . . . . . . . . . .15
-12. Author's Address . . . . . . . . . . . . . . . . . . . . . . . . .15
-Appendix A. Working with NetBIOS Names (Implementation Notes). . . . .16
-   A.1. NetBIOS Names. . . . . . . . . . . . . . . . . . . . . . . . .16
-   A.2. SMB Sessions via NBT . . . . . . . . . . . . . . . . . . . . .16
-   A.3. Resolving DNS names and IP addresses to SMB server names . . .17
-   A.4. Determining the Namespace of the smb_srv_name. . . . . . . . .18
-   A.5. Workgroup vs. SMB Server Names . . . . . . . . . . . . . . . .19
+7. The Relationship Between the SMB URI and the UNC Format . . . . . .14
+8. Authentication and Security Considerations. . . . . . . . . . . . .14
+9. Character Encoding Issues . . . . . . . . . . . . . . . . . . . . .15
+10. Acknowledgments. . . . . . . . . . . . . . . . . . . . . . . . . .15
+11. References . . . . . . . . . . . . . . . . . . . . . . . . . . . .16
+12. Author's Address . . . . . . . . . . . . . . . . . . . . . . . . .16
+13. Copyright Notice . . . . . . . . . . . . . . . . . . . . . . . . .17
+Appendix A. Working with NetBIOS Names (Implementation Notes). . . . .18
+   A.1. NetBIOS Names. . . . . . . . . . . . . . . . . . . . . . . . .18
+   A.2. SMB Sessions via NBT . . . . . . . . . . . . . . . . . . . . .18
+   A.3. Resolving DNS names and IP addresses to SMB server names . . .19
+   A.4. Determining the Namespace of the smb_srv_name. . . . . . . . .20
+   A.5. Workgroup vs. SMB Server Names . . . . . . . . . . . . . . . .21
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hertel                 Expires January 8, 2005                  [Page 2]
+
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
 
 1. Introduction
 
    The Server Message Block protocol (SMB) was created in the 1980's by
    Dr. Barry Feigenbaum at IBM Corporation.  It was later extended by
    various contributors at 3Com, IBM, Intel, and Microsoft.  During the
-   mid 1990's SMB was renamed CIFS (for Common Internet File System).  
-   Both names are in use today.
+   mid 1990's SMB was renamed CIFS (Common Internet File System).  Both
+   names are in common use today.
 
    SMB was originally carried via a proprietary network transport, the
    interface to which was called NetBIOS (Network Basic Input Output
    System).  Two Internet RFCs ([RFC1001], [RFC1002]) were published
    which describe a mechanism for implementing the NetBIOS API on top
-   of TCP and UDP, thus allowing SMB to be carried over IP
-   internetworks.  Those RFCs are now known collectively as Internet
-   Standard #19 (STD 19), and the transport protocol that they describe
-   is commonly called NBT (or, sometimes, NetBT) for NetBIOS over TCP.
-
-
-
-
-Hertel                    Expires July 8, 2004                  [Page 2]
-
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
+   of TCP and UDP, thus allowing SMB to be carried over IP inter-
+   networks.  Those RFCs are now known collectively as Internet
+   Standard #19, and the transport protocol that they describe is
+   commonly called NBT (or, sometimes, NetBT) for NetBIOS over TCP/IP.
 
    In addition to transport via NBT, newer implementations of SMB
    typically support SMB over TCP/IP without the intervening NetBIOS
-   emulation layer.
+   emulation layer.  This is known as SMB over "native" or "naked" TCP
+   transport.
 
    Several attempts have been made to document and even standardize the
    SMB protocol ([XOPENSMB], [ONET], [SNIACIFS], [IMPCIFS]), yet the
@@ -134,17 +152,33 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
    1.1. Purpose
 
-   This document does not attempt to describe the implementation of SMB,
+   This document does not attempt to detail the implementation of SMB,
    or the workings of NBT.  The goal is to present the syntax of the SMB
    URI, and to describe how it is mapped to the semantics of the SMB
-   protocol suite.  The appendices do contain a limited set of
-   implementation guidelines.
+   protocol suite.  A limited set of implementation guidelines is
+   provided in the appendices.
 
 
-2. Working with NBT Transport
+
+
+
+
+
+
+
+
+
+
+
+Hertel                 Expires January 8, 2005                  [Page 3]
+
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
+
+2. NBT Transport Semantics
 
    The NBT transport maps the semantics of the NetBIOS API onto TCP and
-   UDP.  In order to make this work, NBT defines three services:
+   UDP.  In order to make this work, RFC1001/1002 defines three
+   services:
 
    - The NetBIOS Name Service
    - The NetBIOS Datagram Service
@@ -153,26 +187,20 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
    2.1. The NetBIOS Name Service
 
-   NetBIOS uses names to identify communications endpoints across the
-   network.  NetBIOS names are the addresses used in a "NetBIOS
-   network".  The NetBIOS Name Service is responsible for transparently
-   mapping these names to IP addresses so that NetBIOS applications and
-   services can find one another.  In essence, the Name Service is used
-   to create virtual "NetBIOS LANs" on top of IP internetworks.
+   The NetBIOS API uses names to identify communications endpoints.
+   NetBIOS names are the addresses used in "NetBIOS networks".  The
+   NetBIOS Name Service is responsible for transparently mapping these
+   names to IP addresses so that NetBIOS applications and services can
+   find one another.  In essence, the Name Service is used to create
+   virtual "NetBIOS LANs" on top of IP internetworks.
 
    The set of nodes that are connected to the same virtual NetBIOS LAN
    is known as the "scope" of the LAN.  NBT scopes are always given a
    name, or Scope Identifier, though this normally goes unnoticed
    because the default Scope ID is the empty string ("").  Multiple
    scopes, each having a different Scope ID, may intersect across the
-   same IP networks without conflict.
+   same IP internetworks without conflict.
 
-
-
-
-Hertel                    Expires July 8, 2004                  [Page 3]
-
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
    2.2. The NetBIOS Datagram Service
 
@@ -189,13 +217,20 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
    The Session Service maps NetBIOS Sessions to TCP sessions.  Multiple
    NetBIOS sessions may be carried over a single TCP connection.
 
-   SMB file sharing over NBT transport is carried by the Session
+   SMB file sharing over NBT transport is carried via the Session
    Service.  It is worth noting that the protocol for transport of SMB
    messages over NBT is nearly identical to transport via native TCP.
    The differences are:
 
-   - The NBT Session Service uses TCP port 139 by default.  Native TCP
-     transport uses port 445.
+   - The NBT Session Service uses TCP port 139 by default.  SMB over
+     native TCP transport uses port 445.
+
+
+
+
+Hertel                 Expires January 8, 2005                  [Page 4]
+
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
 
    - NBT transport expects a Session Request/Session Response exchange
      in order to initiate a new NetBIOS session over the Session Service
@@ -204,7 +239,7 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
      Request to be optional on both transports).
 
 
-   2.4. Accommodating NBT in the SMB URI
+   2.4  Accommodating NBT in the SMB URI
 
    The SMB URI scheme supports both NBT and native TCP transport of SMB.
    The syntax of the scheme provides for the inclusion of NBT context
@@ -214,81 +249,79 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
    The scheme provides the ability to specify the following NBT context
    information:
 
-   - Broadcast Address for NBT broadcast name resolution
-   - NBNS Server Address for point-to-point name resolution
-   - Name resolution mode
+   - Broadcast Address for NBT broadcast name resolution (B mode)
+   - NBNS Address for point-to-point name resolution (P mode)
+   - Name resolution mode selection
    - NBT Scope ID
    - NetBIOS CALLED name (destination address)
    - NetBIOS CALLING name (source address)
-
-
-
-
-
-
-
-
-Hertel                    Expires July 8, 2004                  [Page 4]
-
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
-
-   NBT context information is appended to the tail end of an SMB URI
-   string in the form of a query.  Context information is specified
-   using key/value pairs.  For example, the string:
-
-      smb://server/share/path/file.txt?NBNS=172.24.19.18
-
-   says that point-to-point name queries for the server name "server"
-   should be sent to the NetBIOS Name Server at address 172.24.19.18.
-
-   Multiple context elements may be specified by separating the
-   key/value pairs with semi-colons:
-
-      smb://server/share/path/file.txt?NBNS=172.24.19.18;NODETYPE=P
 
    Most SMB implementations use configuration files or DHCP to
    establish an initial NBT context.  The starting context is referred
    to as the "base context" in the remainder of this document.  NBT
    context information given in absolute URIs is applied against the
-   base context to give the "current context".  NBT context information
-   given in relative URIs is applied against the current context to
-   update the current context.
+   base context to create the "current context".  NBT context
+   information given in relative URIs is applied against the current
+   context to update the current context.
 
-   The current context is always used to interpret the meaning of a
+   The current NBT context is always used to interpret the meaning of a
    given URI string.  A relative URI containing updated NBT context
    information will cause the resulting URI to be re-evaluated.
 
 
-3. Accessing NBT Workgroup Information
+3. NetBIOS-Based Workgroups
 
-   The "workgroup" system is built on top of NBT and allows SMB file
-   servers to be organized into groups.  The goal is to make it easier
-   to locate resources by categorizing them.
+   The "workgroup" system is built on top of NetBIOS.  Workgroups are
+   identified by their NetBIOS name.  The workgroup system allows SMB
+   file servers to be organized into named groups, with the goal of
+   making it easier to locate resources by categorizing them.
 
-   A list of member servers is maintained for each workgroup, as well
-   as a list of all known workgroups.  The combined list is known as the
-   "browse list".  A copy of the browse list may be obtained by sending
-   a specific query via SMB.
+   Within each workgroup, a list of member servers is maintained.  In
+   addition to the server list, each workgroup maintains a list of all
+   known workgroups.  The combined list is known as the "browse list".
+   A copy of the browse list may be obtained by sending a specific query
+   via SMB.
+
+
+
+
+
+Hertel                 Expires January 8, 2005                  [Page 5]
+
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
+
+4. SMB URI Scheme Overview
+
+   The SMB URI scheme views the SMB file sharing environment
+   hierarchically.  Conceptually, the hierarchy is arranged as follows:
+
+      List of workgroups (from the browse list)
+      + List of servers within a given workgroup (from the browse list)
+        + List of shares (shared objects) offered by a server
+          + Directories, files, etc. within a share
+
+   That hierarchy is mapped to the SMB URI scheme as follows:
+
+      smb://                     Known workgroups
+      smb://smb_browse/            + SMB servers within a workgroup
+      smb://smb_server/              + Shares offered by an SMB server
+      smb://smb_server/abs_path        + Directories, files, etc.
+
+   Note that the scheme may be used to access the NBT browse list as
+   well as SMB file services.
 
    The SMB URI provides syntax that indicates requests for subsets of
    the browse list.  In particular, the form:
 
       smb://
 
-   represents a request for the list of all known workgroups, and the
+   represents a request for the list of all known workgroups, while the
    form:
 
       smb://smb_browse/
 
    represents a request for the list of servers that are members of a
    particular workgroup.
-
-
-
-
-Hertel                    Expires July 8, 2004                  [Page 5]
-
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
    A problem arises, however, because the syntax used for requesting the
    list of servers in a workgroup is indistinguishable from that of a
@@ -300,31 +333,28 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
    If the name "corgi" is a NetBIOS name and it resolves to a workgroup
    name then a user agent would return a list of servers in the CORGI
-   workgroup.  Otherwise, the user agent would return a list of file
-   shares offered by the server named CORGI.
+   workgroup.  Otherwise, if the name resolves to a server name, the
+   user agent would return a list of file shares offered by the server
+   named CORGI.
 
    It is rare, but possible (in a misconfigured NBT network), that a
    NetBIOS name will represent both a workgroup and an SMB file server.
    In this situation, SMB file services take precedence.  Some user
    agents may be capable of returning both the list of servers in the
+
+
+
+Hertel                 Expires January 8, 2005                  [Page 6]
+
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
+
    workgroup and the list of shares provided by the SMB file server, and
    allowing the user to determine which is correct.
 
-
-4. SMB File Sharing Hierarchy
-
-   The SMB URI scheme views the SMB file sharing environment
-   hierarchically.  Conceptually, the hierarchy is arranged as follows:
-
-      smb://                     Known workgroups
-      smb://smb_browse/            + SMB servers within a workgroup
-      smb://smb_server/              + Shares offered by an SMB server
-      smb://smb_server/abs_path        + Directories, files, etc.
-
-   There is a special case to be considered when moving between a
-   workgroup reference and a reference to a server in the workgroup.
-   Consider a workgroup named "corgis" and a server named "cue" that is
-   a member of that workgroup.
+   There is a special case to be considered when using relative
+   references to move between a workgroup reference and a reference to a
+   server in the workgroup.  Consider a workgroup named "corgis" and a
+   server named "cue" that is a member of that workgroup.
 
    Presented with the URI string
 
@@ -341,20 +371,13 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
    would be "../cue/".  It may be simpler, however, for the user agent
    to provide absolute references to the workgroup member servers.
 
-
-
-
-Hertel                    Expires July 8, 2004                  [Page 6]
-
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
-
    When moving upward in the hierarchy, one might might expect:
 
       "smb://cue/" + ".." ==> "smb://"
-  
-   but in this example node "cue" is a member of the "corgis" workgroup,
-   so:
-  
+
+   but in this example the user agent is aware that node "cue" is a
+   member of the "corgis" workgroup, so:
+
       "smb://cue/" + ".." ==> "smb://corgis/"
 
    The NBT workgroup membership of an SMB server may be determined
@@ -365,6 +388,23 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
    not available via either of these methods, then it is acceptable to
    move directly to the top of the hierarchy (smb://).
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hertel                 Expires January 8, 2005                  [Page 7]
+
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
 
 5. SMB URI Definition
 
@@ -400,13 +440,6 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
       nbt_context   = nbt_param *(";" nbt_param )
 
-
-
-Hertel                    Expires July 8, 2004                  [Page 7]
-
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
-
-
       nbt_param     = ( "BROADCAST=" IPv4address [ ":" port ]
                       | "CALLED=" netbiosname
                       | "CALLING=" netbiosname
@@ -415,6 +448,21 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
                       | ( "SCOPEID=" | "SCOPE=" ) scope_id
                       )
 
+
+
+
+
+
+
+
+
+
+
+
+
+Hertel                 Expires January 8, 2005                  [Page 8]
+
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
 
 6. SMB URI Syntax Elements
 
@@ -433,8 +481,7 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
    implementations of the SMB URI scheme that support one or the other
    or both.
 
-   New and updated implementations must support both scheme names in
-   order to be compatible with existing SMB URI references.
+   New and updated implementations must support both scheme names.
 
    As of this writing, the "smb" prefix appears to be the more popular
    of the two.
@@ -454,16 +501,6 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
    represents a request for the list of locally available workgroups.
 
-
-
-
-
-
-
-Hertel                    Expires July 8, 2004                  [Page 8]
-
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
-
    In some situations the workgroup list may not be available to
    unauthenticated users, so the SMB URI scheme allows inclusion of
    smb_userinfo information without the need to specify an smb_srv_name
@@ -473,7 +510,17 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
    In the above, the username "neko" is being supplied.  (The user agent
    should prompt for a password to prevent the password from being
-   displayed.)
+   exposed.)
+
+
+
+
+
+
+
+Hertel                 Expires January 8, 2005                  [Page 9]
+
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
 
    As with the smb_userinfo field, an SMB URI may include a port
    reference without an smb_srv_name, as in the following example:
@@ -515,13 +562,6 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
    the namespace of the name.  (This is a common problem in SMB
    implementations and is typically solved by first attempting to
    resolve the name as a NetBIOS name and then, if that fails, as a DNS
-
-
-
-Hertel                    Expires July 8, 2004                  [Page 9]
-
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
-
    host name.)
 
    Likewise, given:
@@ -533,6 +573,13 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
    A NetBIOS name is simply a string of octets with a maximum length of
    15 octets.  (The actual maximum length of the NetBIOS name is
+
+
+
+Hertel                 Expires January 8, 2005                 [Page 10]
+
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
+
    16-octets, but the 16th is reserved.)  In practice, the only
    restriction on the syntax of a NetBIOS name is that it may not begin
    with an ASCII asterisk character (0x2A).  Octet values that are
@@ -546,7 +593,7 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
    6.5. port
 
-   STD 19 includes a mechanism for retargeting Session Service
+   RFC1001/1002 includes a mechanism for retargeting Session Service
    connections to alternate ports (see [RFC1001], section 16.1.1.)
    which means that non-standard ports may be used for SMB over NBT
    transport.  There may be other valid reasons for providing SMB
@@ -567,18 +614,10 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
    existing implementations.
 
    The other mechanism is to include the Scope ID as part of the
-   nbt_context (which will be described shortly).  The two examples
-   given below are equivalent:
+   nbt_context.  The two examples given below are equivalent:
 
       smb://netbios.scope.id/
       smb://netbios/?SCOPE=scope.id
-
-
-
-
-Hertel                    Expires July 8, 2004                 [Page 10]
-
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
    The latter format is less ambiguous and, therefore, preferred.  User
    Agents that rewrite URI strings for display purposes should rewrite
@@ -587,6 +626,18 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
 
    6.7. nbt_context
+
+   NBT context information is appended to the tail end of an SMB URI
+   string in the form of a URI query string.  Context information is
+   specified using key/value pairs.  Multiple context elements may be
+   specified by separating the key/value pairs with semi-colons.
+
+
+
+Hertel                 Expires January 8, 2005                 [Page 11]
+
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
+
 
    The nbt_context may be used to provide information about the NBT
    transport layer and related support servers.  Information provided
@@ -611,7 +662,7 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
                   The value assigned to the BROADCAST keyword may
                   optionally include a port number (delimited by
-                  a colon).  The default port for NBT name resolution
+                  a colon).  The standard port for NBT name resolution
                   is UDP/137.  It is rare that a different port will
                   be used for broadcast name resolution.
 
@@ -619,7 +670,6 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
                   NetBIOS destination address.)  A CALLED name is
                   required by the NBT Session Request message (see
                   [RFC1002], Section 4.3.2).
-
 
                   If NBT transport is used and the CALLED name is not
                   specified within the URI string, the underlying SMB
@@ -631,39 +681,40 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
                   transport.  It is required by the NBT Session Request
                   message (see [RFC1002], Section 4.3.2).
 
-
-
-
-Hertel                    Expires July 8, 2004                 [Page 11]
-
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
-
                   If NBT transport is used and the CALLING name is not
                   specified in the current NBT context, the underlying
                   SMB implementation must generate a suitable name.
-                  (Typically, this will be the system's host name.)
+                  (Typically, this will be based on the system's host
+                  name.)
 
            NBNS:  Specifies the NetBIOS Name Server (NBNS) to be used
                   for point-to-point NBT Name Resolution.  The NBNS may
+
+
+
+Hertel                 Expires January 8, 2005                 [Page 12]
+
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
+
                   be specified using a DNS name or an IP address.  See
                   [RFC1001] for information on the NBNS.
 
                   The value assigned to this parameter may, optionally,
                   include a port number (delimited by a colon).  The
-                  default port for NBT name resolution is UDP/137.
+                  standard port for NBT name resolution is UDP/137.
                   Use of a non-standard port for point-to-point NBT
-                  name resolution is rare, but less so than it is for
-                  broadcast name resolution.
+                  name resolution is rare (but less so than it is for
+                  broadcast name resolution).
 
        NODETYPE:  One of B, P, M, H, or the empty string.  These
                   represent the different mechanisms by which a NetBIOS
                   name may be resolved to an IP address on an NBT
-                  network.  The first three types are defined in STD 19.
-                  H mode is the inverse of M mode (in H mode the NBNS is
-                  queried before a broadcast query is sent).  An empty
-                  NODETYPE indicates that NBT name resolution should not
-                  be attempted (use DNS name resolution instead).  Some
-                  examples:
+                  network.  The first three types are defined in RFC
+                  1001/1002.  H mode is the inverse of M mode (in H mode
+                  the NBNS is queried before a broadcast query is sent).
+                  An empty NODETYPE, indicates that NBT name resolution
+                  should not be attempted (use DNS name resolution
+                  instead).  Some examples:
 
                      smb://smedley/?NBNS=172.24.19.18;NODETYPE=H
                      smb://corgis/?NODETYPE=B
@@ -672,7 +723,7 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
           SCOPE:  Specifies the NBT Scope Identifier.  Use of the SCOPE
                   keyword is preferred over inclusion of the Scope ID in
                   the nbt_name field.  User agents must support both
-                  mechanisms, however.
+                  mechanisms.
 
                   The default Scope ID is the empty string.  This can be
                   specified in the SMB URI by assigning an empty value
@@ -689,19 +740,19 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
    is not significant.
 
    The client implementation should provide a means for setting the base
-
-
-
-Hertel                    Expires July 8, 2004                 [Page 12]
-
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
-
    context.  The nbt_context is used to override default values or to
    supply values missing from the local configuration.  Most of all, the
    nbt_context makes it possible for an SMB URI string to maintain a
    consistent interpretation as it travels from one NBT scope to
    another.
 
+
+
+
+
+Hertel                 Expires January 8, 2005                 [Page 13]
+
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
 
 7. The Relationship Between the SMB URI and the UNC Format
 
@@ -750,29 +801,34 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
 
 
-Hertel                    Expires July 8, 2004                 [Page 13]
+
+
+
+
+
+
+
+Hertel                 Expires January 8, 2005                 [Page 14]
 
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
-
-
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
 
 9. Character Encoding Issues
 
-   The only restriction that STD 19 places on the octet values that may
-   be used in a NetBIOS name is that the name may not begin with an
-   asterisk ('*', ASCII value 0x2A).  No other values are listed as
-   excluded in the RFCs.  For historical reasons, however, some
+   The only restriction that RFC1001/1002 places on the octet values
+   that may be used in a NetBIOS name is that the name may not begin
+   with an asterisk ('*', ASCII value 0x2A).  No other values are
+   excluded by those RFCs.  For historical reasons, however, some
    implementations disallow the use of a nul byte (0x00) within a
    NetBIOS name.  NetBIOS names are interpreted as a string of octets,
    so common mutli-byte character sets may cause problems with older
    implementations.
 
-   Octet values less than 128 (0x80) in a NetBIOS name are interpreted
-   as US-ASCII characters.  The interpretation of octet values above 127
-   are dependent upon host configuration; there is no protocol mechanism
-   to specify which codepage or character set is in use.  URI escape
-   sequences should be used to represent characters with Octet values
-   above 127.
+   Octet values less than 128 (0x80) in a NetBIOS name are typically
+   interpreted as US-ASCII characters.  The interpretation of octet
+   values above 127 is dependent upon host configuration; there is no
+   protocol mechanism to specify which codepage or character set is in
+   use.  URI escape sequences should be used to represent characters
+   with Octet values above 127.
 
    NetBIOS names, share names, and the directory paths and filenames
    offered by an SMB server may all contain characters from outside the
@@ -808,11 +864,11 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
 
 
-Hertel                    Expires July 8, 2004                 [Page 14]
+
+
+Hertel                 Expires January 8, 2005                 [Page 15]
 
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
-
-
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
 
 11. References
 
@@ -866,9 +922,69 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
 
 
-Hertel                    Expires July 8, 2004                 [Page 15]
+
+
+Hertel                 Expires January 8, 2005                 [Page 16]
 
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
+
+13. Copyright Notice
+
+   Copyright (C) The Internet Society (2004).  This document is subject
+   to the rights, licenses and restrictions contained in BCP 78, and
+   except as set forth therein, the authors retain all their rights.
+
+   This document and the information contained herein are provided on an
+   "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+   OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
+   ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
+   INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+   INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hertel                 Expires January 8, 2005                 [Page 17]
+
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
 
 Appendix A. Working with NetBIOS Names (Implementation Notes)
 
@@ -877,7 +993,7 @@ Appendix A. Working with NetBIOS Names (Implementation Notes)
 
    Name resolution, particularly with the inclusion of support for
    RFC1001/1002 NBT naming, may result in ambiguous meaning for some SMB
-   URI strings.  This problem is reduced if correct NBT syntax
+   URI strings.  This problem is reduced if correct NBT context
    information is included in URI strings, and can be eliminated if all
    implementations follow the same basic sequence when resolving server
    names to addresses.
@@ -914,7 +1030,7 @@ Appendix A. Working with NetBIOS Names (Implementation Notes)
    field is known as the "suffix".
 
    The suffix is NEVER specified in an SMB URI string, but is appended
-   by the implementation.
+   by the client implementation.
 
 
 
@@ -924,13 +1040,13 @@ Appendix A. Working with NetBIOS Names (Implementation Notes)
 
 
 
-Hertel                    Expires July 8, 2004                 [Page 16]
+Hertel                 Expires January 8, 2005                 [Page 18]
 
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
 
    A.3. Resolving DNS names and IP addresses to SMB server names
 
-   The NetBIOS session service requires that the client provide the
+   The NetBIOS Session Service requires that the client provide the
    NetBIOS names of both the calling and called nodes.  When connecting
    to an SMB server, the calling name is the default NetBIOS name of the
    client, space padded as described, with a suffix byte value of 0x00.
@@ -982,9 +1098,9 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
 
 
-Hertel                    Expires July 8, 2004                 [Page 17]
+Hertel                 Expires January 8, 2005                 [Page 19]
 
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
 
      registered with the NetBIOS Name Service.  It will not be returned
      in a NetBIOS Adapter Status Response.
@@ -1033,20 +1149,16 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
    for distinguishing between these server specifier types is the
    trial-and-error method.
 
-
-
-
-
-
-
-
-Hertel                    Expires July 8, 2004                 [Page 18]
-
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
-
    Implementations should begin with the assumption that the specifier
    is a NetBIOS name.  The following process is used to test this
    assumption:
+
+
+
+
+Hertel                 Expires January 8, 2005                 [Page 20]
+
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
 
       If the NODETYPE is the empty string then no NetBIOS name
       resolution mechanism has been selected and the name cannot be
@@ -1095,17 +1207,17 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
         Workgroups, conceptually, represent a group of servers rather
         than an individual server and the browse list may be retrieved
-
-
-
-Hertel                    Expires July 8, 2004                 [Page 19]
-
-INTERNET-DRAFT                  SMB URI                  January 8, 2004
-
         from one or more browse servers.  (A workgroup name is a NetBIOS
         group name.)
 
    In these cases, the server name is interpreted as a reference to an
+
+
+
+Hertel                 Expires January 8, 2005                 [Page 21]
+
+INTERNET-DRAFT                  SMB URI                     July 8, 2004
+
    SMB server only.  Thus, workgroups may only be accessed via their
    NetBIOS names.
 
@@ -1156,5 +1268,9 @@ INTERNET-DRAFT                  SMB URI                  January 8, 2004
 
 
 
-Hertel                    Expires July 8, 2004                 [Page 20]
+
+
+
+
+Hertel                 Expires January 8, 2005                 [Page 22]
 

@@ -1,0 +1,129 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="identity-html.xsl"?>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Davenport WebDAV-SMB Gateway</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css"/>
+</head>
+<body>
+    <h1>Davenport WebDAV-SMB Gateway</h1>
+<hr/>
+<h3>Overview</h3>
+<p>
+Davenport is a servlet which provides a WebDAV gateway to SMB
+shared resources.  Typical usage would be to provide web-based
+read and write access to Windows shared drives.
+</p>
+<p>
+WebDAV clients, such as Windows' &quot;Web Folders&quot; can copy files to and
+from the shares over HTTP.  Non-WebDAV-capable web browsers can
+also access the network, downloading files from shared folders
+in a seamless fashion.
+</p>
+<p>
+Users access shared resources using their Windows domain username
+and password, so no account configuration is typically needed.
+When run over HTTPS, Davenport provides a secure means of
+accessing internal shared drives over the internet without
+requiring a VPN.
+</p>
+<h3>Obtaining Davenport</h3>
+<p>
+Davenport is free software, provided under the
+<a href="http://www.gnu.org/copyleft/lesser.txt">GNU Lesser General Public License</a>.  It can be obtained from the Davenport SourceForge project site at:
+</p>
+<p>
+<a href="http://sourceforge.net/projects/davenport">http://sourceforge.net/projects/davenport</a>
+</p>
+<p>
+The download area (from which the software can be obtained directly)
+is at:
+</p>
+<p>
+<a href="http://sourceforge.net/project/showfiles.php?group_id=78146">http://sourceforge.net/project/showfiles.php?group_id=78146</a>
+</p>
+<h3>Installation</h3>
+<p>
+The binary distribution of Davenport is provided preinstalled in a
+standalone Jetty Servlet container.  This is distributed in zip and
+gzipped tar archives for deployment on a variety of platforms; it is also
+available as a Linux RPM install (tested on Fedora Core 2, but should be
+portable to most other distributions).
+</p>
+<h4>Zip/Tar Installation</h4>
+<p>
+Installation is fairly straightforward:
+</p>
+<ol>
+    <li>Expand the .zip or .tgz archive (preserving directory structure).</li>
+    <li><a href="configuration.html">Configure the deployment descriptor.</a></li>
+</ol>
+<h4>RPM Installation (Linux)</h4>
+<ol>
+    <li>
+        Install the RPM:
+        <pre>    rpm -Uhvf davenport-x.x.x-1.rpm</pre>
+    </li>
+    <li><a href="configuration.html">Configure the deployment descriptor.</a></li>
+</ol>
+<p>
+By default, Davenport will be installed to &quot;/opt/davenport&quot;.
+</p>
+<h3>Getting Started</h3>
+<p>
+Before starting, make sure you have <a href="configuration.html">tailored the deployment descriptor to your environment</a>.  After configuration is complete,
+the Davenport container is ready be started.  The simplest way to do this is
+to run &quot;java -jar start.jar&quot; in the Davenport root directory.
+Likewise, executing &quot;java -jar stop.jar&quot; will stop the container.
+On the Windows platform, double-clicking the .jar files should launch them
+as well.
+</p>
+<p>
+After the container has been started, it should be possible to browse SMB
+resources using Davenport.  To list the shares on an SMB server
+&quot;smbserver&quot; you would enter into your web browser:
+</p>
+<pre>
+    http://davserver:8080/smbserver/
+</pre>
+<p>
+&quot;davserver&quot; is the server on which Davenport is running (by default,
+the container will run on port 8080).  This will bring up the default directory
+listing, which will look something like this:
+</p>
+<p>
+<img src="directory.jpg"/>
+</p>
+<p>
+This will list all shares on the &quot;smbserver&quot; server; by clicking one
+of the shares, files will be listed, and so forth.
+</p>
+<p>
+Clicking the header link at the top of the screen
+(&quot;smb://davhost/files/sample/&quot; in the screenshot above) will reopen
+the item as a Web Folder in Internet Explorer:
+</p>
+<p>
+<img src="webfolder.jpg"/>
+</p>
+<p>
+You can drag and drop files to and from the Web Folder, create and
+delete directories, and perform other file operations.  You can
+open a URL as a Web Folder directly by using the &quot;File -&gt; Open&quot;
+menu in Internet Explorer, and selecting &quot;Open as Web Folder&quot;.
+</p>
+<h3>Troubleshooting</h3>
+<p>
+View the <a href="troubleshooting.html">Davenport Troubleshooting Guide</a>
+for issue resolution procedures and contact information.
+</p>
+<h3>Technical Resources</h3>
+<a href="api/index.html">API Documentation</a><br/>
+<a href="rfc2518.txt">HTTP Extensions for Distributed Authoring -- WEBDAV (RFC 2518)</a><br/>
+<a href="draft-ietf-webdav-rfc2518bis-06.txt">HTTP Extensions for Distributed Authoring -- WebDAV RFC2518 bis (Internet-Draft)</a><br/>
+<a href="draft-reschke-webdav-locking-05.txt">Web Distributed Authoring and Versioning (WebDAV) Locking Protocol (Internet-Draft)</a><br/>
+<a href="draft-crhertel-smb-url-07.txt">SMB Filesharing URI Scheme (Internet-Draft)</a><br/>
+<a href="ntlm.html">The NTLM Authentication Protocol</a><br/>
+</body>
+</html>

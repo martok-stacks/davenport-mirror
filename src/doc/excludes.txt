@@ -1,0 +1,10 @@
+changelog.xml
+configuration.xml
+index.xml
+troubleshooting.xml
+changelog-html.xsl
+changelog-text.xsl
+configuration-html.xsl
+configuration-xml.xsl
+identity-html.xsl
+api/**

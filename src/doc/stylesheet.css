@@ -1,0 +1,110 @@
+body {
+    background-color: white;
+    margin: 0;
+    padding: 0px 20px 50px 20px;
+    font-family: Verdana, Tahoma, Helvetica, Arial, sans-serif;
+    text-align: left;
+    font-size: 10pt;
+}
+
+hr {
+    height: 1px;
+    border-top: 1px dotted #bbccaa;
+    border-bottom: none;
+}
+
+a {
+    font-family: Verdana, Tahoma, Helvetica, Arial, sans-serif;
+    color: #77aa66;
+    text-decoration: none;
+}
+
+a:hover {
+    color: green;
+}
+
+.code {
+    font-family: Terminal, Fixedsys, monospace;
+}
+
+h1 {
+    margin: 1.5em 0 1.5em;
+    text-align: center;
+    font-size: 14pt;
+    font-weight: bold;
+    font-family: Verdana, Tahoma, Helvetica, Arial, sans-serif;
+    text-transform: uppercase;
+    color: #77aa66;
+}
+
+h2 {
+    margin: 1.5em 0 1.5em;
+    font-size: 14pt;
+    font-weight: normal;
+    font-family: Verdana, Tahoma, Helvetica, Arial, sans-serif;
+    text-transform: uppercase;
+    color: #77aa66;
+}
+
+h3 {
+    margin: 2.0em 0 1.0em;
+    font-size: 12pt;
+    font-weight: normal;
+    font-family: Verdana, Tahoma, Helvetica, Arial, sans-serif;
+    text-transform: uppercase;
+    color: #77aa66;
+}
+
+h4 {
+    margin: 2.0em 0 1.0em;
+    font-size: 12pt;
+    font-weight: normal;
+    font-family: Verdana, Tahoma, Helvetica, Arial, sans-serif;
+    color: #77aa66;
+}
+
+h5 {
+    margin: 1.5em 0 .5em;
+    font-size: 10pt;
+    font-weight: normal;
+    font-family: Verdana, Tahoma, Helvetica, Arial, sans-serif;
+    text-transform: uppercase;
+    color: #77aa66;
+}
+
+h6 {
+    margin: 1.5em 0 .5em;
+    font-size: 10pt;
+    font-weight: normal;
+    font-family: Verdana, Tahoma, Helvetica, Arial, sans-serif;
+    color: #77aa66;
+}
+
+table {
+    border: 1px dotted #bbccaa;
+    border-collapse: collapse;
+}
+
+tr {
+    vertical-align: top;
+}
+
+th {
+    font-family: Verdana, Tahoma, Helvetica, Arial, sans-serif;
+    font-weight: bold;
+    font-size: 10pt;
+    padding: 5px 5px 5px 5px;
+    color: #77aa66;
+    border: 1px dotted #bbccaa;
+}
+
+td {
+    font-family: Verdana, Tahoma, Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    padding: 5px 5px 5px 5px;
+    border: 1px dotted #bbccaa;
+}
+
+.rowHeader {
+    text-align: right;
+}

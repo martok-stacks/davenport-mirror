@@ -1,0 +1,192 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="changelog-html.xsl"?>
+<changelog>
+    <version id="0.9.10" date="August 23, 2004">
+        <change>
+            <summary>Introduced support for WebDAV locking (WebDAV compliance class 2).</summary>
+            <description>This version introduces support for WebDAV locks.  Two implementations are supplied, providing both SMB locks (where the WebDAV lock is backed by a physical lock on the SMB resouce) and application-server locks (maintained only by the Davenport application).</description>
+        </change>
+        <change>
+            <summary>Fixed XML vulnerabilities.</summary>
+            <description>Previous versions of Davenport were susceptible to XML-based denial of service attacks.  This includes entity expansion attacks (whereby the client sends a document containing entities crafted to adversely affect the server upon expansion) and parsing-based attacks (where the client causes the server to parse an extremely large XML document, consuming excessive resources).</description>
+            <resolution>Davenport no longer expands entity references, and blocks attempts to resolve external entities.  Additionally, the allowable size of the XML document sent by the client is limited (configurable via the "maximumXmlRequest" parameter.</resolution>
+        </change>
+        <change>
+            <summary>Overhauled the distribution layout.</summary>
+            <description>The layout of the source and distribution tree has been changed.  Davenport is now distributed in binary form as a preconfigured Jetty servlet container installation; this is available as a .zip or .tgz archive, as well as a Linux RPM.  The documentation has been revisited as well.</description>
+        </change>
+    </version>
+    <version id="0.9.9" date="June 28, 2004">
+        <change>
+            <summary>Fixed session storage of non-serializable objects.</summary>
+            <description>0.9.9b stored non-serializable jcifs.UniAddress objects in the session.  This would cause exceptions upon serialization of the session.  Compiled stylesheet templates were stored in the session as well, and are not serializable.</description>
+            <resolution>The address string is now stored rather than the UniAddress object itself.  Templates are now cached outside of the session.</resolution>
+        </change>
+        <change>
+            <summary>Applied finishing touches to 0.9.9b.</summary>
+            <description>Various minor fixes were applied to 0.9.9b as a result of testing.</description>
+        </change>
+    </version>
+    <version id="0.9.9b" date="June 19, 2004">
+        <change>
+            <summary>Added support for URL rewriting based on a context base.</summary>
+            <description>This release introduces a &quot;contextBase&quot; parameter, which allows Davenport to rewrite URLs based on a specified base URL.  This allows for operation in a reverse proxy scenario.  Additionally, a &quot;contextBaseHeader&quot; parameter is provided to allow the base context to be specified on a per-request basis.</description>
+        </change>
+        <change>
+            <summary>Added per-server authentication caching.</summary>
+            <description>Davenport will now store authenticated credentials in the session for each server.  This eliminates several roundtrips and can improve performance significantly.</description>
+        </change>
+        <change>
+            <summary>Disabled closing of HTTP connection upon request for authentication.</summary>
+            <description>Previous versions of Davenport closed the HTTP connection upon sending the request for authentication to the client.  This resulted in unnecessary network traffic.</description>
+            <resolution>This version introduces a parameter (&quot;closeOnAuthenticate&quot;) which allows configuration of this behavior.  By default, Davenport will no longer close the HTTP connection; if this introduces incompatibilities with certain clients, this parameter can be set to &quot;true&quot; to use the previous behavior.</resolution>
+        </change>
+        <change>
+            <summary>Added support for pluggable error handlers.</summary>
+            <description>Davenport now provides a mechanism for installing handlers for errors presented to the servlet.  Default handlers are provided which allow configurable handling of authentication and IO errors.</description>
+        </change>
+        <change>
+            <summary>Added support for pluggable logging.</summary>
+            <description>Davenport now allows for pluggable logging providers, with configurable severity thresholds.  See the &quot;smbdav.Log&quot; class for details.</description>
+        </change>
+        <change>
+            <summary>Added ability to specify anonymous credentials.</summary>
+            <description>A parameter (&quot;anonymousCredentials&quot;) has been added to specify an account used for anonymous access to SMB resources.  This will be used in preference to the account specified by the &quot;jcifs.smb.client.*&quot; settings.  This allows the jCIFS account to be used for preauthentication, while using a different account for anonymous browsing.  In previous versions, the jCIFS account was used for both purposes.</description>
+        </change>
+        <change>
+            <summary>Added file filter framework.</summary>
+            <description>Support was added for filtering resource requests.  Extensible filters based on the jCIFS SmbFileFilter interface can be installed to control access to resources.  Out-of-box filters are provided for filtering based on the target server and excluding hidden resources from the result set.  Additionally, logical primitive filters are supplied which can be used to create arbitrarily complex compound filters.</description>
+        </change>
+        <change>
+            <summary>Updated bundled jCIFS to version 0.9.2.</summary>
+            <description>jCIFS 0.9.2 includes numerous enhancements over the previous bundled version (0.7.19).  This includes support for SMB preauthentication, which resolves SMB signing issues with Windows 2003 servers.</description>
+        </change>
+    </version>
+    <version id="0.9.8" date="February 12, 2004">
+        <overview>
+        </overview>
+        <change>
+            <summary>Un-Fixed the non-bug involving redirects for directories not ending in &quot;/&quot;.</summary>
+            <description>Version 0.9.7 redirected requests for directories not ending in &quot;/&quot; to the &quot;/&quot;-terminated equivalent for GET, HEAD, OPTIONS, and PROPFIND requests.  This is not legal for OPTIONS and PROPFIND.</description>
+            <resolution>Davenport now redirects requests only via GET and HEAD.</resolution>
+        </change>
+    </version>
+    <version id="0.9.7" date="February 10, 2004">
+        <change>
+            <summary>Fixed a bug involving redirects for directories not ending in &quot;/&quot;.</summary>
+            <description>Davenport should redirect requests for collections not ending in &quot;/&quot; to the &quot;/&quot;-terminated location.  This was previously only being done for GET requests.</description>
+            <resolution>Davenport now redirects requests via GET, HEAD, OPTIONS, and PROPFIND.</resolution>
+        </change>
+        <change>
+            <summary>Fixed various bugs involving incorrect WebDAV properties.</summary>
+            <description>There were various cases in which Davenport presented WebDAV properties containing invalid values.  These have been removed.</description>
+            <resolution>Excluded the &quot;creationdate&quot; and &quot;getlastmodified&quot; properties for resources on which these values do not exist.  Excluded the &quot;getcontentlength&quot; property for collections.  Excluded collections from ETag generation.</resolution>
+        </change>
+        <change>
+            <summary>Added additional localization support.</summary>
+            <description>Directory stylesheets and the configuration page can now use a mechanism similar to resource bundles to support localization.</description>
+        </change>
+    </version>
+    <version id="0.9.6" date="February 9, 2004">
+        <change>
+            <summary>Fixed a bug involving date formatting in some WebDAV properties.</summary>
+            <description>The date formatter used to produce the value for the &quot;getcreationdate&quot; and &quot;getlastmodified&quot; properties used the platform's default locale.  This would result in invalid HTTP date formats on non-English platforms.</description>
+            <resolution>Specified the US locale for the relevant date formatters.</resolution>
+        </change>
+        <change>
+            <summary>Added a configuration option to accept HTTP Basic credentials if proactively offered by the client.</summary>
+            <description>Added the &quot;acceptBasic&quot; configuration option.  This will use HTTP Basic authentication if it is presented by the client, even if Davenport is not configured to offer HTTP Basic.  This is useful for clients that revert to HTTP Basic when presented with unrecognized authentication mechanisms (such as NTLM).  Additionally, some containers have been found to support only a single mechanism at a time, preventing Davenport from offering both NTLM and Basic.  This setting would allow such installations to offer only NTLM, but accept Basic from clients that don't support NTLM.</description>
+        </change>
+        <change>
+            <summary>Added a configuration option to disable NTLM authentication for improved functionality in Windows 2003 environments.</summary>
+            <description>Added the &quot;enableNtlm&quot; configuration option.  When set to &quot;false&quot;, this will prevent Davenport from offering NTLM authentication.  By default, Windows 2003 servers are configured to require SMB signing.  jCIFS will support SMB signing, but the password is required.  Davenport only has access to the user's password under HTTP Basic authentication.  This setting can allow Davenport to operate in such an environment.  Note that Basic authentication is highly insecure; appropriate precautions should be taken by administrators if this approach is taken.</description>
+        </change>
+        <change>
+            <summary>Added a build target to reconfigure the WAR file using an updated deployment descriptor.</summary>
+            <description>The Ant build script now includes a &quot;reconfig&quot; target which will refresh &quot;davenport.war&quot; with the current deployment descriptor (&quot;web.xml&quot;) from the source tree.  This simplifies the process of tuning the deployment descriptor to the local environment.</description>
+        </change>
+        <change>
+            <summary>Added preliminary localization support.</summary>
+            <description>Error messages and other strings previously hardcoded in the application source are now loaded from a resource bundle.  This facilitates translation to other languages and localities.</description>
+        </change>
+        <change>
+            <summary>Updated bundled jCIFS to version 0.7.19.</summary>
+            <description>jCIFS 0.7.19 includes numerous enhancements over the previous bundled version (0.7.11).  This includes support for SMB signing, which is required by default for interoperability with Windows 2003 servers.</description>
+        </change>
+    </version>
+    <version id="0.9.5" date="July 16, 2003">
+        <overview>Very special thanks to Ronald Tschal&#228;r, who identified and provided patches for nearly all of the items in this release (including all bugfixes).  As a result, WebDAV functionality with several clients has been significantly improved.  Note that the default authentication behavior has changed when accessing resources; Davenport will now require authentication only when demanded by the underlying resource.  This implies that publicly accessible shares may now be publicly accessible through Davenport as well.  The previous behavior can be enabled by setting the &quot;alwaysAuthenticate&quot; parameter to &quot;true&quot;; this will request authentication when accessing any resource on a given server.</overview>
+        <change>
+            <summary>Fixed a bug involving the status code in the PROPFIND response.</summary>
+            <description>The PROPFIND response previously returned a status code of 200 (&quot;OK&quot;) rather than 207 (&quot;Multi-Status&quot;).  This was a bug in Davenport.</description>
+            <resolution>Fixed to return status code 207 (&quot;Multi-Status&quot;).</resolution>
+        </change>
+        <change>
+            <summary>Fixed a bug involving the status code in the MKCOL response.</summary>
+            <description>The MKCOL response previously returned a status code of 200 (&quot;OK&quot;) rather than 201 (&quot;Created&quot;).  This was a bug in Davenport.</description>
+            <resolution>Fixed to return status code 201 (&quot;Created&quot;).</resolution>
+        </change>
+        <change>
+            <summary>Fixed a bug involving missing namespace declarations in the PROPFIND document.</summary>
+            <description>The PROPFIND XML document previously only added declarations for the standard &quot;DAV:&quot; namespace and the Microsoft attribute namespace.  PROPFIND requests which included elements from other namespaces would result in missing namespace declarations in the resulting document.  This was a bug in Davenport.</description>
+            <resolution>Fixed to add new namespace declarations as encountered.</resolution>
+        </change>
+        <change>
+            <summary>Changed the getcontenttype value for collections.</summary>
+            <description>Under Konqueror, the folder icon is not displayed for collection resources unless the value of the getcontenttype property is &quot;httpd/unix-directory&quot;.  Previous versions of Davenport used &quot;application/octet-stream&quot; as the value for this property.  While the value is undefined in the WebDAV specification, it does indicate that it should match the value of the Content-Type header in the GET response (which would be neither &quot;application/octet-stream&quot; or &quot;httpd/unix-directory&quot;, but &quot;text/html&quot;).  After weighing the advantages and disadvantages, the decision was made to break from the specification and use &quot;httpd/unix-directory&quot; to better support Konqueror users.  This may change in future Davenport revisions if it is determined to cause issues with WebDAV clients which enforce the specification semantics.</description>
+        </change>
+        <change>
+            <summary>Changed the default authentication behavior for anonymous browsing.</summary>
+            <description>Previous versions of Davenport always authenticated the user, even when anonymous access was allowed to a given resource.  The default behavior has been changed to only request authentication when it is required by the resource being accessed.  A servlet parameter, &quot;alwaysAuthenticate&quot;, has been added to revert to the previous behavior.</description>
+        </change>
+        <change>
+            <summary>Set the content length in the response for all handlers.</summary>
+            <description>Some of the request handlers did not set an explicit content length.  While not technically an error, it was inconsistent behavior.</description>
+        </change>
+        <change>
+            <summary>Added support for LMv2 authentication.</summary>
+            <description>With jCIFS 0.7.11, support for LMv2 authentication has been added.  This provides a more secure authentication scheme than standard NTLM.  Documentation on the &quot;jcifs.smb.lmCompatibility&quot; property has been added, providing instructions on enabling LMv2 authentication.</description>
+        </change>
+        <change>
+            <summary>Added technical documentation on the NTLM authentication protocol.</summary>
+            <description>Compiled a body of documentation on the NTLM authentication protocol, used as the basis for LMv2 support in jCIFS and as a general developer's reference on NTLM.</description>
+        </change>
+        <change>
+            <summary>Updated bundled jCIFS to version 0.7.11, and changed the minimum jCIFS version to 0.7.11.</summary>
+            <description>jCIFS 0.7.11 includes numerous fixes identified since the release of the previous bundled version (0.7.6), and includes support for LMv2 authentication.  A minor change to the Davenport authentication code relies on a 0.7.11 API enhancement.</description>
+        </change>
+    </version>
+    <version id="0.9.0" date="May 12, 2003">
+        <change>
+            <summary>Fixed a bug involving the encoding of non-ASCII URL characters.</summary>
+            <description>Multibyte UTF-8 characters were being encoded as &quot;%aabb&quot;, rather than &quot;%aa%bb&quot;.  This was a bug in Davenport.</description>
+            <resolution>Fixed to encode as &quot;%aa%bb&quot;.</resolution>
+        </change>
+        <change>
+            <summary>Fixed issue with Windows' Web Folders involving &quot;drilling down&quot; from workgroups.</summary>
+            <description>SMB URLs are not strictly hierarchical, in that smb://foo could represent either workgroup &quot;foo&quot; or server &quot;foo&quot;.  When drilling down from workgroup &quot;foo&quot; to server &quot;foobar&quot;, the correct transition is &quot;smb://foo/&quot; -> &quot;smb://foobar&quot;.  Microsoft's Web Folders implementation constructs child resources using the current resource URL as a base URI (rather than respecting the URL specified in the propfind result).  This effectively caused Davenport to access the server as &quot;smb://foo/foobar/&quot;.</description>
+            <resolution>As workgroups are encountered, they are now cached; attempts to access hierarchically represented server URLs (such as &quot;smb://foo/foobar/&quot;) are now converted to the correct form (&quot;smb://foobar/&quot;) before use by the application.  It is possible to subvert this mechanism by directly accessing a server &quot;foobar&quot; as &quot;smb://foo/foobar/&quot; before first accessing the workgroup; however, this would not occur when drilling down, and is technically an incorrect SMB URL in any case.</resolution>
+        </change>
+        <change>
+            <summary>Fixed issue with Windows' Web Folders and non-ASCII URL characters.</summary>
+            <description>Web Folders uses the local character set when encoding non-ASCII URL characters, rather than UTF-8 (this applies even when &quot;Always send URLs as UTF-8&quot; has been selected from the Internet Explorer options).  As a result, non-ASCII characters are unrecognized by Davenport.</description>
+            <resolution>An initialization parameter (&quot;request-uri.charset&quot;) has been added to specify the character set that should be used to interpret the request URI.  This has been defaulted to &quot;ISO-8859-1&quot;.  UTF-8 is used as a fallback in the event that the resource cannot be located, and should always work.  Note that this will cause issues if the local character set used by the client does not match the server character set specified here.  Also, this will still not work under servlet containers which only accept UTF-8 encoded request URIs (such as Caucho's Resin).  Note that this is NOT a bug in Resin; no interpretation is mandated for non-ASCII characters in URLs, and UTF-8 is the recommended best practice for handling such characters.  However, this will prevent interoperability between Web Folders and Davenport running under Resin when accessing files containing non-ASCII characters.</resolution>
+        </change>
+        <change>
+            <summary>Davenport can now be properly built on JDK 1.3.1 or higher (rather than requiring 1.4).</summary>
+            <description>The smbdav.PropertiesDirector class previously contained a call to the Character.toString(char) method from 1.4.</description>
+            <resolution>This was the only item preventing Davenport from working on 1.3.1; this was changed to extend compliance.</resolution>
+        </change>
+        <change>
+            <summary>Ant build file changed to allow building with older versions of Ant.</summary>
+            <description>The build.xml contained task definitions specific to Ant 1.5 which prevented the build from working under older versions of Ant.</description>
+            <resolution>The build file was rewritten to accommodate older versions of Ant.  It should work on versions going back to at least Ant 1.3.  The only 1.5-specific task which remains is &quot;checksum&quot; (used to calculate the MD5 sums of the distribution files).  This task is not necessary to compile or deploy Davenport successfully.</resolution>
+        </change>
+        <change>
+            <summary>Updated bundled jCIFS to version 0.7.6.</summary>
+        </change>
+    </version>
+    <version id="0.8.0" date="April 8, 2003">
+        <overview>This is the initial public release of the Davenport application.</overview>
+    </version>
+</changelog>

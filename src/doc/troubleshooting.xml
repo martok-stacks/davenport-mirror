@@ -1,0 +1,117 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="identity-html.xsl"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Davenport Troubleshooting Guide</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css"/>
+<script type="text/Javascript"> 
+    function showHide(itemId) { 
+        item = document.getElementById(itemId);
+        item.className = (item.className == "shown") ? "hidden" : "shown";
+    }
+</script>
+</head>
+<body>
+<h1>Davenport Troubleshooting Guide</h1>
+<p>
+This document provides resources for resolution of issues with Davenport.  If you encounter an issue that this article cannot help you solve, please post a description to the jCIFS mailing list at <a href="mailto:jcifs@lists.samba.org?subject=Davenport%20Issue%20Report">jcifs@lists.samba.org</a>.
+</p>
+<h2>General Steps for Resolution</h2>
+<p>
+The following are some good first steps to isolating and resolving any problems you may encounter.  It is recommended that you try at least some of these before reporting an issue (if these steps don't resolve the problem, the information gathered will be useful in further troubleshooting).
+</p>
+<a name="ensureLatestVersion"></a>
+<h3>1. Ensure you are running the latest version of Davenport</h3>
+<p>
+The Davenport download area is at:
+</p>
+<p>
+<a href="http://sourceforge.net/project/showfiles.php?group_id=78146">http://sourceforge.net/project/showfiles.php?group_id=78146</a>
+</p>
+<p>
+If the problem you are experiencing is listed in the change log, there is an excellent chance it has already been fixed.  If you are not running the current version, it is recommended that you upgrade in any case; the issue may have been resolved even if not noted in the change log.
+</p>
+<a name="checkYourConfiguration"></a>
+<h3>2. Check your configuration</h3>
+<p>
+Look over the settings configured in Davenport's deployment descriptor (&quot;web.xml&quot;).  Refer to the <a href="configuration.html">Davenport Configuration Reference</a> for details.
+</p>
+<a name="checkYourClient"></a>
+<h3>3. Check your WebDAV client</h3>
+<p>
+If possible, determine whether the issue is Davenport-specific or a symptom of the WebDAV client being used.  An excellent resource for known problems with the Microsoft Web Folder WebDAV clients can be found here:
+</p>
+<p>
+<a href="http://greenbytes.de/tech/webdav/webfolder-client-list.html">http://greenbytes.de/tech/webdav/webfolder-client-list.html</a>
+</p>
+<a name="checkYourContainer"></a>
+<h3>4. Check your Servlet container</h3>
+<p>
+Davenport ships with the <a href="http://www.mortbay.org/jetty/index.html">Jetty</a> Servlet container, and has also been extensively used under <a href="http://jakarta.apache.org/tomcat/index.html">Tomcat</a>.  Both of these containers are freely available; if possible, try running Davenport under either of these to help determine if your issue is container-related.
+</p>
+<h2>What To Do Next</h2>
+<p>
+If you've tried the above with no success, please send a message describing the issue you are encountering to the jCIFS mailing list:
+</p>
+<p>
+<a href="mailto:jcifs@lists.samba.org?subject=Davenport%20Issue%20Report">jcifs@lists.samba.org</a>
+</p>
+<p>
+Include as much of the following as possible:
+</p>
+<ul>
+<li>A detailed description of the problem.</li>
+<li>Detailed instructions on how the issue can be reproduced.</li>
+<li>A description of your client (web browser or WebDAV client and version).</li>
+<li>A description of your Servlet container (type and version).</li>
+<li>A description of your SMB/CIFS servers (Samba vs. Windows, version).</li>
+<li>Attach your deployment descriptor ("web.xml") if possible, but <b><i>remember to remove any sensitive information before sending it</i></b>.</li>
+</ul>
+<p>
+You can also <a href="http://sourceforge.net/tracker/?func=add&amp;group_id=78146&amp;atid=552286">submit a bug report</a> on the Davenport SourceForge site, if you like; but you will likely receive a much faster response from the mailing list.
+</p>
+<p>
+If it is determined that a network issue may be causing the behavior, a Davenport or jCIFS developer may request a packet capture.  This is a recording of network traffic, and is an extremely useful troubleshooting tool.  <b><i>Packet captures may contain passwords or other sensitive information, and should not be sent to public mailing lists</i></b>.  If a capture is required, it should be sent to the developer directly.
+</p>
+<p>
+Instructions for obtaining a packet capture can be found at:
+</p>
+<p>
+<a href="http://jcifs.samba.org/src/docs/capture.html">http://jcifs.samba.org/src/docs/capture.html</a>
+</p>
+<p>
+Davenport captures should ideally be run on the Davenport server; in a typical scenario, the following ports should be captured:
+</p>
+<table>
+    <tr>
+        <th class="rowHeader">8080</th>
+        <td>The default Davenport HTTP/WebDAV port; this port services Davenport clients directly.</td>
+    </tr>
+    <tr>
+        <th class="rowHeader">137</th>
+        <td>NetBIOS Name Service; used for NetBIOS name resolution.</td>
+    </tr>
+    <tr>
+        <th class="rowHeader">138</th>
+        <td>NetBIOS Datagram Service; used for delivering NetBIOS datagrams via UDP.</td>
+    </tr>
+    <tr>
+        <th class="rowHeader">139</th>
+        <td>NetBIOS Session Service; used for TCP NetBIOS traffic (including SMB).</td>
+    </tr>
+    <tr>
+        <th class="rowHeader">445</th>
+        <td>SMB/CIFS; used for SMB traffic.</td>
+    </tr>
+</table>
+<p>
+If you are using "tcpdump", the proper command would be:
+</p>
+<pre>
+    tcpdump -s 0 -w davenport.pcap 'port 8080 || 137 || 138 || 139 || 445'
+</pre>
+<p>
+This should produce the packet capture file "davenport.pcap".
+</p>
+</body>
+</html>

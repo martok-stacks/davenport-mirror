@@ -1,0 +1,65 @@
+body {
+    background-color: white;
+    font-family: Verdana, Tahoma, Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+}
+
+p, td, dl, h1, h2, h3, h4, h5, h6 {
+    font-family: Verdana, Tahoma, Helvetica, Arial, sans-serif;
+}
+
+p, td, dl {
+    font-size: 10pt;
+}
+
+a {
+    text-decoration: none;
+    color: green;
+}
+
+a:hover {
+    color: black;
+}
+
+.TableHeadingColor {
+    background: #bbccaa;
+}
+
+.TableSubHeadingColor {
+    background: #ddeecc;
+}
+
+.TableRowColor {
+    background: #eeffdd;
+}
+
+.NavBarCell1 {
+    background-color:#ddeecc;
+}
+
+.NavBarCell1Rev {
+    background-color:#bbccaa;
+}
+
+.NavBarFont1 {
+    font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+    color: green;
+}
+
+.NavBarFont1Rev {
+    font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+    color: black;
+}
+
+.NavBarCell2 {
+    font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+    font-size: 8pt;
+    background-color: white;
+}
+
+.NavBarCell3 {
+    font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+    font-size: 8pt;
+    background-color: white;
+}
+
