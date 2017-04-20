@@ -119,6 +119,7 @@
         <xsl:with-param name="important-parameters" select="parameter-class/parameter[@importance = 'high']"/>
     </xsl:call-template>
     <xsl:apply-templates select="parameter-class"/>
+    <xsl:apply-templates select="compression-parameters"/>
 </body>
 </xsl:template>
 <xsl:template match="parameter-class">
@@ -135,6 +136,19 @@
     <div class="shown" id="{@name}">
         <xsl:apply-templates select="references"/>
         <xsl:apply-templates select="parameter"/>
+    </div>
+</xsl:template>
+<xsl:template match="compression-parameters">
+    <h3>Compression Filter Parameters</h3>
+    <xsl:apply-templates select="description"/>
+    <a>
+        <xsl:attribute name="href">
+            <xsl:text>javascript:showHide('compression-parameters')</xsl:text>
+        </xsl:attribute>
+        <xsl:text>Expand/Collapse Category</xsl:text>
+    </a>
+    <div class="shown" id="compression-parameters">
+        <xsl:apply-templates select="compression-parameter"/>
     </div>
 </xsl:template>
 <xsl:template match="summary">
@@ -164,6 +178,16 @@
 </xsl:template>
 <xsl:template match="reference">
     <li><a href="{@location}"><xsl:value-of select="@label"/></a></li>
+</xsl:template>
+<xsl:template match="compression-parameter">
+    <a name="{@name}"/>
+    <h4><xsl:value-of select="@name"/></h4>
+    <xsl:apply-templates select="summary"/>
+    <xsl:apply-templates select="description"/>
+    <xsl:apply-templates select="valid-values"/>
+    <xsl:apply-templates select="default-value"/>
+    <xsl:apply-templates select="example"/>
+    <xsl:apply-templates select="example-value"/>
 </xsl:template>
 <xsl:template match="parameter">
     <a name="{@name}"/>

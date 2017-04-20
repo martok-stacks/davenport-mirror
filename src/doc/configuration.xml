@@ -939,12 +939,63 @@
             <description>
                 <para>This setting specifies the character set encoding used by jCIFS to encode and decode strings.  This should match the character set used by SMB servers.</para>
             </description>
-            <default-value>Environment-Specific (defaults to the value of the "file.encoding" System property).</default-value>
+            <default-value>Cp860 (MS-DOS Latin 1)</default-value>
             <example-value>Cp1252</example-value>
             <references>
                 <reference label="Supported Java Encodings" location="http://java.sun.com/j2se/1.3/docs/guide/intl/encoding.doc.html"/>
             </references>
         </parameter>
     </parameter-class>
+    <compression-parameters>
+        <description>
+            <para>These settings are used to configure the Davenport compression filter, which optimizes network bandwidth utilization.</para>
+        </description>
+        <compression-parameter name="compressionLevel">
+            <summary>The compression level used by the filter.</summary>
+            <description>
+                <para>This controls how much compression is applied by the filter.  Valid values are 0 (no compression) through 9 (maximum compression), or -1 (default compression).</para>
+            </description>
+            <default-value>-1</default-value>
+            <example-value>9</example-value>
+            <valid-values>
+                <valid-value>
+                    <value>0</value>
+                    <description>Use no compression.</description>
+                </valid-value>
+                <valid-value>
+                    <value>1 - 9</value>
+                    <description>Compression level (1 is fastest/least compression, 9 is slowest/most compression).</description>
+                </valid-value>
+                <valid-value>
+                    <value>-1</value>
+                    <description>Use a default compression level (medium speed/compression).</description>
+                </valid-value>
+            </valid-values>
+        </compression-parameter>
+        <compression-parameter name="gzipEnabled">
+            <summary>Indicates whether GZIP compression is supported.</summary>
+            <description>
+                <para>This toggles support for GZIP compression on and off.</para>
+            </description>
+            <default-value>true</default-value>
+            <example-value>true</example-value>
+        </compression-parameter>
+        <compression-parameter name="deflateEnabled">
+            <summary>Indicates whether "deflate" compression is supported.</summary>
+            <description>
+                <para>This toggles support for deflate compression on and off.</para>
+            </description>
+            <default-value>true</default-value>
+            <example-value>true</example-value>
+        </compression-parameter>
+        <compression-parameter name="methods">
+            <summary>Indicates the HTTP/WebDAV methods to which compression will be applied.</summary>
+            <description>
+                <para>This is a whitespace-separated list of method names (GET, POST, etc.).  The responses for requests using methods enumerated in the list will be compressed using the configured strategy.</para>
+            </description>
+            <default-value>GET LOCK POST PROPFIND</default-value>
+            <example-value>GET LOCK POST PROPFIND</example-value>
+        </compression-parameter>
+    </compression-parameters>
 </config>
 

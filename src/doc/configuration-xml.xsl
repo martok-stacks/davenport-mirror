@@ -81,17 +81,47 @@
                 <xsl:value-of select="$version"/>
             </xsl:if>
         </display-name>
+        <filter>
+            <filter-name>Compression</filter-name>
+            <filter-class>smbdav.CompressionFilter</filter-class>
+            <xsl:apply-templates select="//compression-parameter"/>
+        </filter>
+        <filter-mapping>
+            <filter-name>Compression</filter-name>
+            <servlet-name>Davenport</servlet-name>
+        </filter-mapping>
         <servlet>
             <servlet-name>Davenport</servlet-name>
             <servlet-class>smbdav.Davenport</servlet-class>
             <xsl:apply-templates select="//parameter[@importance = 'high']"/>
-            <xsl:apply-templates select="//parameter"/>
+            <xsl:apply-templates select="//parameter[not(@importance = 'high')]"/>
         </servlet>
         <servlet-mapping>
             <servlet-name>Davenport</servlet-name>
             <url-pattern>/*</url-pattern>
         </servlet-mapping>
     </web-app>
+</xsl:template>
+<xsl:template match="compression-parameter">
+    <xsl:comment>
+        <xsl:text>
+    </xsl:text>
+        <xsl:value-of select="@name"/>
+        <xsl:text>:
+
+</xsl:text>
+        <xsl:call-template name="format-line">
+            <xsl:with-param name="line" select="summary"/>
+            <xsl:with-param name="pad" select="'        '"/>
+        </xsl:call-template>
+        <xsl:text>
+</xsl:text>
+        <xsl:apply-templates select="description"/>
+        <xsl:apply-templates select="valid-values"/>
+        <xsl:apply-templates select="default-value"/>
+    </xsl:comment>
+    <xsl:apply-templates select="example"/>
+    <xsl:apply-templates select="example-value"/>
 </xsl:template>
 <xsl:template match="parameter">
     <xsl:comment>

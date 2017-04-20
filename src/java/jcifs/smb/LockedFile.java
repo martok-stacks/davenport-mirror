@@ -95,7 +95,8 @@ public class LockedFile extends SmbFile {
 
     private void refresh() throws IOException {
         open(SmbFile.O_CREAT | SmbFile.O_RDWR | SmbFile.O_APPEND,
-                SmbFile.ATTR_NORMAL, WRITE_OPTIONS);
+                FILE_WRITE_DATA | FILE_WRITE_ATTRIBUTES, SmbFile.ATTR_NORMAL,
+                        WRITE_OPTIONS);
     }
 
 }

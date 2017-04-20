@@ -47,9 +47,7 @@ is at:
 <p>
 The binary distribution of Davenport is provided preinstalled in a
 standalone Jetty Servlet container.  This is distributed in zip and
-gzipped tar archives for deployment on a variety of platforms; it is also
-available as a Linux RPM install (tested on Fedora Core 2, but should be
-portable to most other distributions).
+gzipped tar archives for deployment on a variety of platforms.
 </p>
 <h4>Zip/Tar Installation</h4>
 <p>
@@ -59,17 +57,6 @@ Installation is fairly straightforward:
     <li>Expand the .zip or .tgz archive (preserving directory structure).</li>
     <li><a href="configuration.html">Configure the deployment descriptor.</a></li>
 </ol>
-<h4>RPM Installation (Linux)</h4>
-<ol>
-    <li>
-        Install the RPM:
-        <pre>    rpm -Uhvf davenport-x.x.x-1.rpm</pre>
-    </li>
-    <li><a href="configuration.html">Configure the deployment descriptor.</a></li>
-</ol>
-<p>
-By default, Davenport will be installed to &quot;/opt/davenport&quot;.
-</p>
 <h3>Getting Started</h3>
 <p>
 Before starting, make sure you have <a href="configuration.html">tailored the deployment descriptor to your environment</a>.  After configuration is complete,
@@ -121,9 +108,9 @@ for issue resolution procedures and contact information.
 <h3>Technical Resources</h3>
 <a href="api/index.html">API Documentation</a><br/>
 <a href="rfc2518.txt">HTTP Extensions for Distributed Authoring -- WEBDAV (RFC 2518)</a><br/>
-<a href="draft-ietf-webdav-rfc2518bis-06.txt">HTTP Extensions for Distributed Authoring -- WebDAV RFC2518 bis (Internet-Draft)</a><br/>
-<a href="draft-reschke-webdav-locking-05.txt">Web Distributed Authoring and Versioning (WebDAV) Locking Protocol (Internet-Draft)</a><br/>
-<a href="draft-crhertel-smb-url-07.txt">SMB Filesharing URI Scheme (Internet-Draft)</a><br/>
+<a href="draft-ietf-webdav-rfc2518bis-17.txt">HTTP Extensions for Distributed Authoring -- WebDAV RFC2518 bis (Internet-Draft)</a><br/>
+<a href="draft-reschke-webdav-locking-08.txt">Web Distributed Authoring and Versioning (WebDAV) Locking Protocol (Internet-Draft, Expired)</a><br/>
+<a href="draft-crhertel-smb-url-12.txt">SMB Filesharing URI Scheme (Internet-Draft)</a><br/>
 <a href="ntlm.html">The NTLM Authentication Protocol</a><br/>
 </body>
 </html>

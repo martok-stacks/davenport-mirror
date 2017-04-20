@@ -1,6 +1,20 @@
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="changelog-html.xsl"?>
 <changelog>
+    <version id="0.9.11" date="March 9, 2007">
+        <change>
+            <summary>Updated bundled jCIFS to version 1.2.13.</summary>
+            <description>jCIFS 1.2.13 includes numerous enhancements over the previously bundled version, including support for enumerating long share names.</description>
+        </change>
+        <change>
+            <summary>Updated bundled Jetty to version 4.2.27.</summary>
+            <description>Brought the bundled container to the current revision of the "Mature" (4.x) tree.</description>
+        </change>
+        <change>
+            <summary>Added support for GZIP and Deflate compression.</summary>
+            <description>Added a servlet filter implementing compression for clients that indicate they can support GZIP or Deflate encoding.  This can significantly reduce network traffic.</description>
+        </change>
+    </version>
     <version id="0.9.10" date="August 23, 2004">
         <change>
             <summary>Introduced support for WebDAV locking (WebDAV compliance class 2).</summary>

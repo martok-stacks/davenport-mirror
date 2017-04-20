@@ -108,3 +108,7 @@ td {
 .rowHeader {
     text-align: right;
 }
+
+input#submit {
+    font-size: 36pt;
+}
